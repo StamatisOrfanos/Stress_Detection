@@ -17,10 +17,21 @@ The purpose of this repository is to find, test and create new processes for str
 
 ## Libraries
 
-We also used a set of custom libraries created by other authors in order to have a better understanding of the data and create a better Explanatory Data Analysis. Some of those libraries are: 
+We also used a set of custom libraries created by other authors in order to have a better understanding of the data and create a better Explanatory Data Analysis. Some of those libraries are:
 
 1. [pyhrv](https://github.com/PGomes92/pyhrv)
 2. [hrv-analysis](https://github.com/Aura-healthcare/hrv-analysis)
 3. [wearable-hrv](https://github.com/AminSinichi/wearable-hrv)
 4. [Stress-Prediction-Using-HRV](https://github.com/realmichaelye/Stress-Prediction-Using-HRV)
 5. [Stress Prediction using Wearable Device Data](https://github.com/kjspring/stress-detection-wearable-devices)
+
+### Strategy
+
+In the design of our architecture for Stress Detection we decided to use off the self devices that we can use in order to get heart rate measurements. In this directory we are going to use the heart rate data in order to get HRV metrics like SDNN and RMSSD. Using these metrics we are going to create three different approaches to stress detection. Now HRV is a concept that refers to the variation in time between heartbeats, and it’s quantified through various metrics — not just one.
+
+| Metric  | Meaning                                                                                               |
+| ------- | ------------------------------------------------------------------------------------------------------|
+| SDNN    |Standard deviation of all NN (normal-to-normal) intervals. Reflects overall HRV                        |
+| RMSSD   |Root mean square of successive RR differences. Sensitive to short-term vagal (parasympathetic) activity|
+
+Since we have a 2-5-minute window of values, we can use PPG-derived (photoplethysmography) approximated RR intervals from HR and return RMSSD as the main HRV value.
