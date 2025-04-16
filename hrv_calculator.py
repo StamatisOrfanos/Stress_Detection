@@ -5,7 +5,9 @@ from typing import List, Union, Optional, Dict
 import numpy as np
 from typing import List, Optional, Union, Dict
 
-def compute_hrv_from_heart_rate(heart_rates: List[float], windowed: bool = False, timestamps: Optional[List[str]] = None, use_jitter: bool = False, jitter_std: float = 5.0, upsample: bool = False, upsample_factor: int = 4) -> Union[Dict, List[Dict]]:
+def compute_hrv_from_heart_rate(heart_rates: List[float], windowed: bool = False, timestamps: Optional[List[str]] = None, 
+                                use_jitter: bool = False, jitter_std: float = 25.0, upsample: bool = False, upsample_factor: int = 4
+                                ) -> Union[Dict, List[Dict]]:
 
     def rr_intervals(hr_segment: List[float]) -> np.ndarray:
         """Convert HR (bpm) to RR intervals (ms)."""
@@ -64,7 +66,7 @@ def compute_hrv_from_heart_rate(heart_rates: List[float], windowed: bool = False
 
 
 
-data = [75, 74, 73, 75, 76, 77, 76, 75, 74, 73, 72, 71, 72, 73, 74]
-timestamps = ["2023-10-01T00:00:00Z"] * len(data)
-result = compute_hrv_from_heart_rate(heart_rates=data, windowed=True, timestamps=timestamps)
-print(result)
+# data = [75, 74, 73, 75, 76, 77, 76, 75, 74, 73, 72, 71, 72, 73, 74]
+# timestamps = ["2023-10-01T00:00:00Z"] * len(data)
+# result = compute_hrv_from_heart_rate(heart_rates=data, windowed=True, timestamps=timestamps, use_jitter=True, jitter_std=5.0, upsample=True, upsample_factor=4)
+# print(result)
