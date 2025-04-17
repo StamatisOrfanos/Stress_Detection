@@ -6,7 +6,7 @@ import numpy as np
 from typing import List, Optional, Union, Dict
 
 def compute_hrv_from_heart_rate(heart_rates: List[float], windowed: bool = False, timestamps: Optional[List[str]] = None, 
-                                use_jitter: bool = False, jitter_std: float = 20.0, upsample: bool = False, upsample_factor: int = 10
+                                use_jitter: bool = False, jitter_std: float = 15.0, upsample: bool = False, upsample_factor: int = 10
                                 ) -> Union[Dict, List[Dict]]:
 
     def rr_intervals(hr_segment: List[float]) -> np.ndarray:
