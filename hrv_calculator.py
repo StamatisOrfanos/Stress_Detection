@@ -1,7 +1,7 @@
 import numpy as np
 from typing import List, Optional, Union, Dict
 
-def compute_hrv_per_second(heart_rates: List[float], window_size: int = 15, jitter_std: float = 5.0, 
+def compute_hrv_from_heart_rate(heart_rates: List[float], window_size: int = 15, jitter_std: float = 5.0, 
                            use_jitter: bool = False, timestamps: Optional[List[str]] = None) -> List[Dict]:
 
     def rr_intervals(hr_segment: List[float]) -> np.ndarray:
@@ -36,13 +36,4 @@ def compute_hrv_per_second(heart_rates: List[float], window_size: int = 15, jitt
 
     return results
 
-
-
-
-heart_rates = [75 + np.random.randn() for _ in range(120)]
-results = compute_hrv_per_second(heart_rates, window_size=15, use_jitter=True)
-
-# Print first few results
-for r in results[:50]:
-    print(r)
 
