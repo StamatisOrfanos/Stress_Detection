@@ -1,7 +1,7 @@
 [
   {
     "type": "phr",
-    "createdAt": { "$date": "2025-06-01T08:00:00Z" },
+    "createdAt": { "$date": "2025-06-01T09:00:00Z" },
     "effectiveDatetime": { "$date": "2025-06-01T08:00:00Z" },
     "userId": "user_123",
     "sourceType": "wearable",
@@ -14,7 +14,7 @@
         "unit": "bpm",
         "value": 75,
         "samplingFrequency": 1,
-        "signal": [74, 75, 76, 75, 73, 72, 74, 76, 78, 77, 76, 75, 74, 73, 72]
+        "signal": [74, 75, 76, 75, 73, 72, 74, 76, 78, 77, 76, 75, 74, 73, 72, 76, 78, 77, 76, 75, 74, 73, 72, 76, 78, 77, 76, 75, 74, 73, 80, 78, 77, 76, 75, 74, 73, 72]
       }
     ],
     "notes": "Morning measurement"
