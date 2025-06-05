@@ -85,7 +85,7 @@ def process_hrv_documents(mongo_uri='mongodb://localhost:27017', db_name='phr-db
                 start_dt = effective_time if isinstance(effective_time, datetime) \
                     else datetime.fromisoformat(effective_time.replace('Z', '+00:00'))
             except Exception as e:
-                print(f'[User {user_id}] Error parsing datetime: {e}')
+                print(f'[User {user_id}] Error parsing datetime: {e}', flush=True)
                 continue
 
             timestamps = [(start_dt + timedelta(seconds=i / sampling_freq)).isoformat() for i in range(len(signal))]
@@ -96,12 +96,10 @@ def process_hrv_documents(mongo_uri='mongodb://localhost:27017', db_name='phr-db
 
             for result in hrv_results:
                 ts = result.get('start_timestamp', 'N/A')
-                print(f"  Timestamp: {ts}: RMSSD={result['rmssd']}, SDNN={result['sdnn']}")
+                print(f"  Timestamp: {ts}: RMSSD={result['rmssd']}, SDNN={result['sdnn']}", flush=True)
 
         if updated:
             phr_collection.update_one({'_id': doc['_id']}, {'$set': {'entries': entries}})
 
-
-# Example usage
-if __name__ == '__main__':
+if __name__ == "__main__":
     process_hrv_documents()
