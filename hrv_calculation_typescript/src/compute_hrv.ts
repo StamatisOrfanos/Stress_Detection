@@ -45,11 +45,7 @@ async function processHRV() {
         const segment = signal.slice(i, i + 30);
         const rr = bpmToRR(segment);
         const metrics = computeHRVMetrics(rr);
-        hrvResults.push({
-          ...metrics,
-          start_index: i,
-          start_timestamp: timestamps[i],
-        });
+        hrvResults.push({ ...metrics, start_index: i, start_timestamp: timestamps[i], });
       }
 
       entry.hrv = hrvResults;

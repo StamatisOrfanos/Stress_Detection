@@ -1,6 +1,19 @@
 {
+  "name": "hrv-pipeline",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "HRV computation and validation using TypeScript and MongoDB",
+  "main": "src/compute_hrv.ts",
+  "scripts": {
+    "compute": "ts-node src/compute_hrv.ts",
+    "validate": "ts-node src/validate_hrv.ts"
+  },
   "dependencies": {
     "@types/mongodb": "^4.0.6",
     "mongodb": "^6.17.0"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.1",
+    "typescript": "^5.4.2"
   }
 }
