@@ -12,9 +12,30 @@
       {
         "type": "heartrate",
         "unit": "bpm",
-        "value": 75,
+        "value": 95,
         "samplingFrequency": 1,
-        "signal": [74, 75, 76, 75, 73, 72, 74, 76, 78, 77, 76, 75, 74, 73, 72, 76, 78, 77, 76, 75, 74, 73, 72, 76, 78, 77, 76, 75, 74, 73, 80, 78, 77, 76, 75, 74, 73, 72]
+        "signal": [74, 75, 76, 75, 73, 72, 74, 76, 78, 80, 81, 74, 75, 76, 75, 73, 72, 74, 76, 78, 80, 81, 74, 75, 76, 75, 73, 72, 74, 76, 78, 80, 81, 74, 75, 76, 75, 73, 72, 74, 76, 78, 80, 81]
+      }
+    ],
+    "notes": "Morning measurement"
+  },
+
+    {
+    "type": "phr",
+    "createdAt": { "$date": "2025-06-01T10:00:00Z" },
+    "effectiveDatetime": { "$date": "2025-06-01T10:00:00Z" },
+    "userId": "user_456",
+    "sourceType": "wearable",
+    "deviceName": "Galaxy Watch",
+    "deviceId": "GW-001",
+    "model": "Samsung Watch 5",
+    "entries": [
+      {
+        "type": "heartrate",
+        "unit": "bpm",
+        "value": 95,
+        "samplingFrequency": 1,
+        "signal": [94, 95, 96, 95, 93, 92, 94, 96, 98, 99, 96, 95, 94, 93, 92, 96, 98, 99, 96, 95, 94, 93, 92, 96, 98, 99, 96, 95, 94, 93, 80, 98, 99, 96, 95, 94, 93, 92]
       }
     ],
     "notes": "Morning measurement"
