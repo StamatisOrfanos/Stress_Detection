@@ -1,9 +1,0 @@
-quit
-db.PHR.find().pretty()
-use phr-db
-quit
-c
-!q
-q
-db.PHR.find().pretty()
-use phr-db
