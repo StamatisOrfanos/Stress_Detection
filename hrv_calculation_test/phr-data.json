@@ -1,0 +1,22 @@
+[
+  {
+    "type": "phr",
+    "createdAt": { "$date": "2025-06-01T08:00:00Z" },
+    "effectiveDatetime": { "$date": "2025-06-01T08:00:00Z" },
+    "userId": "user_123",
+    "sourceType": "wearable",
+    "deviceName": "Galaxy Watch",
+    "deviceId": "GW-001",
+    "model": "Samsung Watch 5",
+    "entries": [
+      {
+        "type": "heartrate",
+        "unit": "bpm",
+        "value": 75,
+        "samplingFrequency": 1,
+        "signal": [74, 75, 76, 75, 73, 72, 74, 76, 78, 77, 76, 75, 74, 73, 72]
+      }
+    ],
+    "notes": "Morning measurement"
+  }
+]
