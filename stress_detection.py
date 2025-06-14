@@ -8,7 +8,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
-from sklearn.metrics import ConfusionMatrixDisplay, accuracy_score, f1_score, precision_score, recall_score, f1_score, confusion_matrix
+from sklearn.metrics import ConfusionMatrixDisplay, accuracy_score, f1_score, precision_score, recall_score, f1_score, classification_report
 from sklearn.cluster import KMeans
 from sklearn.ensemble import RandomForestClassifier
 from xgboost import XGBClassifier
@@ -65,18 +65,19 @@ if __name__ == '__main__':
         'SWELL Dataset'                                 : f'{data_path}/SWELL/train.csv', 
     }
 
-
     # Define models
     models = {
-        'Logistic Regression':     LogisticRegression(max_iter=100, class_weight='balanced', random_state=26),
-        'Random Forest':           RandomForestClassifier(n_estimators=10, class_weight='balanced', random_state=26, min_samples_leaf=1, max_features='sqrt'),
-        'SVM (Linear Kernel)':     SVC(kernel='linear', class_weight='balanced', C=1.0, gamma='scale', random_state=26),
-        'SVM (RBF Kernel)':        SVC(kernel='rbf', class_weight='balanced', C=1.0, gamma='scale', random_state=26),
-        'SVM (Polynomial Kernel)': SVC(kernel='poly', class_weight='balanced', C=1.0, gamma='scale', random_state=26),
-        'XGBoost':                 XGBClassifier(eval_metric='logloss', class_weight='balanced'),
+        'Logistic Regression':     LogisticRegression(max_iter=100, random_state=26),
+        'Random Forest':           RandomForestClassifier(n_estimators=10, random_state=26, min_samples_leaf=1, max_features='sqrt'),
+        'SVM (Linear Kernel)':     SVC(kernel='linear', C=1.0, gamma='scale', random_state=26),
+        'SVM (RBF Kernel)':        SVC(kernel='rbf', C=1.0, gamma='scale', random_state=26),
+        'SVM (Polynomial Kernel)': SVC(kernel='poly', C=1.0, gamma='scale', random_state=26),
+        'XGBoost':                 XGBClassifier(eval_metric='logloss'),
         'KNN':                     KNeighborsClassifier(n_neighbors=5),
     }
     
+    # Store the best model per dataset     
+    best_models = []
     
     for dataset_name, dataset in datasets.items():
         
@@ -85,70 +86,82 @@ if __name__ == '__main__':
         
         # Load dataset
         data = data_loader(dataset_name, dataset)
-        
-        if dataset_name == 'Nurse Stress Prediction Wearable Sensors':
-            X = data[['HR', 'HRV']]
-            y = data['label']
+        X = data[['HR', 'HRV']]
+        y = data['label']
 
-            X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, random_state=42)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, random_state=42)
             
-            for model_name, model in models.items():
+        for model_name, model in models.items():
+
+            print(f'Training on dataset: {dataset_name} with model: {model_name}')
+            experiment = mlflow.set_experiment(experiment_name=model_name)
+            print("Experiment_id: {}".format(experiment.experiment_id))
+            print("Artifact Location: {}".format(experiment.artifact_location))
+            mlflow.start_run()
+            # Train machine learning models and predict
+            model.fit(X_train, y_train)
+            y_pred = model.predict(X_test)
+
+            # Metrics
+            acc = accuracy_score(y_test, y_pred)
+            f1  = f1_score(y_test, y_pred)
+            accuracy  = accuracy_score(y_test, y_pred)
+            precision = precision_score(y_test, y_pred)
+            recall    = recall_score(y_test, y_pred)
+            f1        = f1_score(y_test, y_pred)
                 
-                with mlflow.start_run(run_name=model_name):
-                    # Train machine learning models and predict
-                    model.fit(X_train, y_train)
-                    y_pred = model.predict(X_test)
-
-                    # Metrics
-                    acc = accuracy_score(y_test, y_pred)
-                    f1 = f1_score(y_test, y_pred, average='weighted')
+            # Log parameters and metrics
+            tags = {'data': dataset_name, 'model': model_name}
+            metrics = {'accuracy': accuracy, 'precision': precision, 'recall': recall, 'f1': f1}
+            mlflow.set_tags(tags)
+            mlflow.log_metrics(metrics)
                     
-                    accuracy  = accuracy_score(y_test, y_pred)
-                    precision = precision_score(y_test, y_pred, average='weighted')
-                    recall    = recall_score(y_test, y_pred, average='weighted')
-                    f1        = f1_score(y_test, y_pred, average='weighted')
-
-                    # Log parameters and metrics
-                    tags = {'data': dataset_name, 'model': model_name}
-                    metrics = {'accuracy': accuracy, 'precision': precision, 'recall': recall, 'f1': f1}
-                    mlflow.set_tags(tags)
-                    mlflow.log_metrics(metrics)
+            # Get classification report and log it under artifacts folder
+            report = classification_report(y_test, y_pred, target_names=np.unique(y_test), output_dict=True)
+            report_df = pd.DataFrame(report).transpose()
+            report_filename = f'{experiment.artifact_location}/classification_report_{model_name}.csv'
+            report_df.to_csv(report_filename)
+            mlflow.log_artifact(report_filename)
                     
-                    # Get Confusion matrix and log it under artifacts folder
-                    cm = confusion_matrix(y_test, y_pred)
-                    cm_display = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=np.unique(y_test))
-                    cm_display.plot(cmap='Blues', xticks_rotation=45)
-                    cm_filename = f'confusion_matrix_{model_name}.png'
-                    plt.savefig(cm_filename, bbox_inches='tight')
-                    mlflow.log_artifact(cm_filename)
-                    plt.close()
+            # Enforce signature
+            signature = infer_signature(X_test, y_pred)
+            input_example = {'columns':np.array(X_test.columns), 'data': np.array(X_test.values)}
                     
-                    # Enforce signature
-                    signature = infer_signature(X_test, y_pred)
-                    input_example = {'columns':np.array(X_test.columns), 'data': np.array(X_test.values)}
-                    
-                    # Save and log model in pickle format
-                    pkl_path = f"{model_name}_model.pkl"
-                    joblib.dump(model, pkl_path)
-                    mlflow.log_artifact(pkl_path)
-                    mlflow.sklearn.log_model(model, model_name, signature=signature, input_example=X_test.iloc[:5])
+            # Save and log model in pickle format
+            pkl_path = f'{experiment.artifact_location}/model.pkl'
+            joblib.dump(model, pkl_path)
+            mlflow.log_artifact(pkl_path)
+            mlflow.sklearn.log_model(model, model_name, signature=signature, input_example=X_test.iloc[:5]) # type: ignore
 
-                    # Optional: log Docker-ready model using pyfunc
-                    pyfunc_model_path = f"{model_name}_docker_pyfunc"
-                    mlflow.pyfunc.log_model(
-                        artifact_path=pyfunc_model_path,
-                        python_model=SklearnWrapper(),
-                        artifacts={"model": pkl_path},
-                        conda_env=mlflow.sklearn.get_default_conda_env()
-                    )
-                    
+            # Optional: log Docker-ready model using pyfunc
+            pyfunc_model_path = f'{experiment.artifact_location}/docker_pyfunc'
+            mlflow.pyfunc.log_model(
+                artifact_path=pyfunc_model_path,
+                python_model=SklearnWrapper(),
+                artifacts={'model': pkl_path},
+                conda_env=mlflow.sklearn.get_default_conda_env() # type: ignore
+            )
 
-                    # Log model
-                    mlflow.sklearn.log_model(model, model_name) # type: ignore
-
-                    print(f"[{dataset_name}] {model_name} - Accuracy: {acc:.4f} - F1: {f1:.4f}")
+            print(f"[{dataset_name}] {model_name} - Accuracy: {acc:.4f} - F1: {f1:.4f}")
+            best_models.append({
+                'dataset': dataset_name,
+                'model': model_name,
+                'f1_score': f1,
+                'accuracy': accuracy,
+                'precision': precision,
+                'recall': recall
+            })
                 
-                mlflow.end_run()
+            mlflow.end_run()
+    
+    # Convert to DataFrame and find best per dataset
+    results_df = pd.DataFrame(best_models)
+    best_per_dataset = results_df.sort_values('f1_score', ascending=False).groupby('dataset').first().reset_index()
+
+    # Save to CSV
+    results_csv_path = 'best_models_summary.csv'
+    best_per_dataset.to_csv(results_csv_path, index=False)
+    print(f"Saved best model summary to {results_csv_path}")
             
             
 
