@@ -1,31 +1,33 @@
 # Import libraries
-import os, warnings
+import os, warnings, joblib
 import pandas as pd
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
-from imblearn.over_sampling import RandomOverSampler
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
-from sklearn.preprocessing import RobustScaler, StandardScaler
-from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, f1_score, roc_auc_score, confusion_matrix
+from sklearn.metrics import ConfusionMatrixDisplay, accuracy_score, f1_score, precision_score, recall_score, f1_score, confusion_matrix
 from sklearn.cluster import KMeans
-from sklearn.preprocessing import LabelEncoder
 from sklearn.ensemble import RandomForestClassifier
-from keras import Input
 from xgboost import XGBClassifier
-import mlflow
-import mlflow.sklearn
+import mlflow, mlflow.sklearn
 from mlflow.models.signature import ModelSignature, infer_signature
-
-
+from mlflow.pyfunc import PythonModel # type: ignore
 warnings.filterwarnings('always')
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 # Import Data Paths
 data_path = os.getcwd() + '/data' 
+
+
+class SklearnWrapper(PythonModel):
+    def load_context(self, context):
+        self.model = joblib.load(context.artifacts["model"])
+
+    def predict(self, context, model_input):
+        return self.model.predict(model_input)
 
 
 def data_loader(dataset_name: str, dataset: str):
@@ -112,15 +114,40 @@ if __name__ == '__main__':
                     mlflow.set_tags(tags)
                     mlflow.log_metrics(metrics)
                     
+                    # Get Confusion matrix and log it under artifacts folder
+                    cm = confusion_matrix(y_test, y_pred)
+                    cm_display = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=np.unique(y_test))
+                    cm_display.plot(cmap='Blues', xticks_rotation=45)
+                    cm_filename = f'confusion_matrix_{model_name}.png'
+                    plt.savefig(cm_filename, bbox_inches='tight')
+                    mlflow.log_artifact(cm_filename)
+                    plt.close()
+                    
                     # Enforce signature
                     signature = infer_signature(X_test, y_pred)
                     input_example = {'columns':np.array(X_test.columns), 'data': np.array(X_test.values)}
+                    
+                    # Save and log model in pickle format
+                    pkl_path = f"{model_name}_model.pkl"
+                    joblib.dump(model, pkl_path)
+                    mlflow.log_artifact(pkl_path)
+                    mlflow.sklearn.log_model(model, model_name, signature=signature, input_example=X_test.iloc[:5])
+
+                    # Optional: log Docker-ready model using pyfunc
+                    pyfunc_model_path = f"{model_name}_docker_pyfunc"
+                    mlflow.pyfunc.log_model(
+                        artifact_path=pyfunc_model_path,
+                        python_model=SklearnWrapper(),
+                        artifacts={"model": pkl_path},
+                        conda_env=mlflow.sklearn.get_default_conda_env()
+                    )
                     
 
                     # Log model
                     mlflow.sklearn.log_model(model, model_name) # type: ignore
 
                     print(f"[{dataset_name}] {model_name} - Accuracy: {acc:.4f} - F1: {f1:.4f}")
+                
                 mlflow.end_run()
             
             
