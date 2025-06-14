@@ -14,6 +14,7 @@ from sklearn.ensemble import RandomForestClassifier
 from xgboost import XGBClassifier
 import mlflow, mlflow.sklearn
 from mlflow.models.signature import ModelSignature, infer_signature
+import io
 from mlflow.pyfunc import PythonModel # type: ignore
 warnings.filterwarnings('always')
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -72,7 +73,7 @@ def data_loader(dataset_name: str, dataset: str):
 if __name__ == '__main__':
     
     datasets = {
-        # 'Nurse Stress Prediction Wearable Sensors'      : f'{data_path}/Healthcare/hrv.csv', 
+        'Nurse Stress Prediction Wearable Sensors'      : f'{data_path}/Healthcare/hrv.csv', 
         'Heart Rate Prediction to Monitor Stress Level' : f'{data_path}/Heart_Rate_Prediction/Train_Data/train.csv', 
         'Stress Predict'                                : f'{data_path}/Stress_predict/hrv.csv', 
         'SWELL Dataset'                                 : f'{data_path}/SWELL/train.csv', 
@@ -130,16 +131,16 @@ if __name__ == '__main__':
             mlflow.set_tags(tags)
             mlflow.log_metrics(metrics)
                 
-            # Get classification report and log it under artifacts folder
-            report    = classification_report(y_test, y_pred, target_names=np.unique(y_test), output_dict=True, zero_division=0)
+            # Get classification report and log it directly to MLflow artifacts (in-memory)
+            report = classification_report(y_test, y_pred, target_names=np.unique(y_test), output_dict=True, zero_division=0)
             report_df = pd.DataFrame(report).transpose()
-            report_filename = f'{experiment.artifact_location}/classification_report_{model_name}.csv'
-            report_df.to_csv(report_filename)
-            mlflow.log_artifact(report_filename)
+            report_buffer = io.StringIO()
+            report_df.to_csv(report_buffer)
+            report_buffer.seek(0)
+            mlflow.log_text(report_buffer.getvalue(), f'classification_report_{model_name}.csv')
                 
             # Enforce signature
-            if dataset_name == 'Heart Rate Prediction to Monitor Stress Level':
-                X_test = X_test.astype({col: 'float64' for col in X_test.select_dtypes(include='int').columns})
+            X_test = X_test.astype({col: 'float64' for col in X_test.select_dtypes(include='int').columns})
             signature = infer_signature(X_test, y_pred)
             input_example = {'columns':np.array(X_test.columns), 'data': np.array(X_test.values)}
                 
@@ -151,13 +152,14 @@ if __name__ == '__main__':
 
             # Optional: log Docker-ready model using pyfunc
             mlflow.pyfunc.log_model(
-            artifact_path='docker_pyfunc',
-            python_model=SklearnWrapper(),
-            artifacts={'model': pkl_path},
-            conda_env=mlflow.sklearn.get_default_conda_env() # type: ignore
+                artifact_path='docker_ready',
+                python_model=SklearnWrapper(),
+                artifacts={'model': pkl_path},
+                conda_env=mlflow.sklearn.get_default_conda_env() # type: ignore
             )
 
-            print(f"[{dataset_name}] {model_name} - Accuracy: {acc:.4f} - F1: {f1:.4f}")
+            print(f'[{dataset_name}] {model_name} - Accuracy: {acc:.4f} - F1: {f1:.4f}')
+            print('\n\n')
             best_models.append({
             'dataset'  : dataset_name,
             'model'    : model_name,
