@@ -138,6 +138,8 @@ if __name__ == '__main__':
             mlflow.log_artifact(report_filename)
                 
             # Enforce signature
+            if dataset_name == 'Heart Rate Prediction to Monitor Stress Level':
+                X_test = X_test.astype({col: 'float64' for col in X_test.select_dtypes(include='int').columns})
             signature = infer_signature(X_test, y_pred)
             input_example = {'columns':np.array(X_test.columns), 'data': np.array(X_test.values)}
                 
@@ -145,7 +147,7 @@ if __name__ == '__main__':
             pkl_path = f'{experiment.artifact_location}/model.pkl'
             joblib.dump(model, pkl_path)
             mlflow.log_artifact(pkl_path)
-            mlflow.sklearn.log_model(model, model_name, signature=signature, input_example= X_test.iloc[0]) # type: ignore
+            mlflow.sklearn.log_model(model, model_name, signature=signature, input_example=X_test.iloc[:5]) # type: ignore
 
             # Optional: log Docker-ready model using pyfunc
             mlflow.pyfunc.log_model(
@@ -166,6 +168,7 @@ if __name__ == '__main__':
             })
             
             mlflow.end_run()
+            break
     
     # Convert to DataFrame and find best per dataset
     results_df = pd.DataFrame(best_models)
