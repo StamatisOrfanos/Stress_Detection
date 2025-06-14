@@ -40,16 +40,29 @@ def data_loader(dataset_name: str, dataset: str):
     data = pd.read_csv(dataset)
     data.dropna(inplace=True)
     
-    if dataset_name == 'Heart Rate Prediction to Monitor Stress Level':
+    # Standardize HRV column
+    if 'RMSSD' in data.columns:
         data = data.rename(columns={'RMSSD': 'HRV'})
+
+    # Standardize label/condition column
+    if 'condition' in data.columns:
         data['condition'] = data['condition'].map({'no stress': 'low', 'interruption': 'medium', 'time pressure': 'high'})
         data = data.rename(columns={'condition': 'label'})
-    elif dataset_name == 'SWELL Dataset':
-        data['RMSSD'] = data['RMSSD'].astype(int)
-        data['HR'] = data['HR'].astype(int)
-        data = data.rename(columns={'RMSSD': 'HRV'})
-        data['condition'] = data['condition'].map({'no stress': 'low', 'interruption': 'medium', 'time pressure': 'high'})
-        data = data.rename(columns={'condition': 'label'})
+    elif 'stress' in data.columns:
+        data = data.rename(columns={'stress': 'label'})
+    elif 'Label' in data.columns:
+        data = data.rename(columns={'Label': 'label'})
+    
+    # For SWELL Dataset, ensure correct types
+    if dataset_name == 'SWELL Dataset':
+        if 'HRV' in data.columns:
+            data['HRV'] = data['HRV'].astype(int)
+        if 'HR' in data.columns:
+            data['HR'] = data['HR'].astype(int)
+    
+    # Ensure 'label' column exists for downstream code
+    if 'label' not in data.columns:
+        raise ValueError(f"'label' column not found after processing {dataset_name}. Columns are: {data.columns.tolist()}")
     
     return data
 
@@ -59,7 +72,7 @@ def data_loader(dataset_name: str, dataset: str):
 if __name__ == '__main__':
     
     datasets = {
-        'Nurse Stress Prediction Wearable Sensors'      : f'{data_path}/Healthcare/hrv.csv', 
+        # 'Nurse Stress Prediction Wearable Sensors'      : f'{data_path}/Healthcare/hrv.csv', 
         'Heart Rate Prediction to Monitor Stress Level' : f'{data_path}/Heart_Rate_Prediction/Train_Data/train.csv', 
         'Stress Predict'                                : f'{data_path}/Stress_predict/hrv.csv', 
         'SWELL Dataset'                                 : f'{data_path}/SWELL/train.csv', 
@@ -98,60 +111,60 @@ if __name__ == '__main__':
             print("Experiment_id: {}".format(experiment.experiment_id))
             print("Artifact Location: {}".format(experiment.artifact_location))
             mlflow.start_run()
+            
             # Train machine learning models and predict
             model.fit(X_train, y_train)
             y_pred = model.predict(X_test)
 
-            # Metrics
+            # Metrics (set zero_division=0 to suppress UndefinedMetricWarning)
             acc = accuracy_score(y_test, y_pred)
-            f1  = f1_score(y_test, y_pred)
+            f1  = f1_score(y_test, y_pred, average='weighted', zero_division=0)
             accuracy  = accuracy_score(y_test, y_pred)
-            precision = precision_score(y_test, y_pred)
-            recall    = recall_score(y_test, y_pred)
-            f1        = f1_score(y_test, y_pred)
-                
+            precision = precision_score(y_test, y_pred, average='weighted', zero_division=0)
+            recall    = recall_score(y_test, y_pred, average='weighted', zero_division=0)
+            f1        = f1_score(y_test, y_pred, average='weighted', zero_division=0)
+            
             # Log parameters and metrics
-            tags = {'data': dataset_name, 'model': model_name}
+            tags    = {'data': dataset_name, 'model': model_name}
             metrics = {'accuracy': accuracy, 'precision': precision, 'recall': recall, 'f1': f1}
             mlflow.set_tags(tags)
             mlflow.log_metrics(metrics)
-                    
+                
             # Get classification report and log it under artifacts folder
-            report = classification_report(y_test, y_pred, target_names=np.unique(y_test), output_dict=True)
+            report    = classification_report(y_test, y_pred, target_names=np.unique(y_test), output_dict=True, zero_division=0)
             report_df = pd.DataFrame(report).transpose()
             report_filename = f'{experiment.artifact_location}/classification_report_{model_name}.csv'
             report_df.to_csv(report_filename)
             mlflow.log_artifact(report_filename)
-                    
+                
             # Enforce signature
             signature = infer_signature(X_test, y_pred)
             input_example = {'columns':np.array(X_test.columns), 'data': np.array(X_test.values)}
-                    
+                
             # Save and log model in pickle format
             pkl_path = f'{experiment.artifact_location}/model.pkl'
             joblib.dump(model, pkl_path)
             mlflow.log_artifact(pkl_path)
-            mlflow.sklearn.log_model(model, model_name, signature=signature, input_example=X_test.iloc[:5]) # type: ignore
+            mlflow.sklearn.log_model(model, model_name, signature=signature, input_example= X_test.iloc[0]) # type: ignore
 
             # Optional: log Docker-ready model using pyfunc
-            pyfunc_model_path = f'{experiment.artifact_location}/docker_pyfunc'
             mlflow.pyfunc.log_model(
-                artifact_path=pyfunc_model_path,
-                python_model=SklearnWrapper(),
-                artifacts={'model': pkl_path},
-                conda_env=mlflow.sklearn.get_default_conda_env() # type: ignore
+            artifact_path='docker_pyfunc',
+            python_model=SklearnWrapper(),
+            artifacts={'model': pkl_path},
+            conda_env=mlflow.sklearn.get_default_conda_env() # type: ignore
             )
 
             print(f"[{dataset_name}] {model_name} - Accuracy: {acc:.4f} - F1: {f1:.4f}")
             best_models.append({
-                'dataset': dataset_name,
-                'model': model_name,
-                'f1_score': f1,
-                'accuracy': accuracy,
-                'precision': precision,
-                'recall': recall
+            'dataset'  : dataset_name,
+            'model'    : model_name,
+            'f1_score' : f1,
+            'accuracy' : accuracy,
+            'precision': precision,
+            'recall'   : recall
             })
-                
+            
             mlflow.end_run()
     
     # Convert to DataFrame and find best per dataset
