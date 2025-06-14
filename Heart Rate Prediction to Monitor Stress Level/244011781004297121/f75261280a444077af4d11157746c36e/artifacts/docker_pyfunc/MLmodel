@@ -1,0 +1,23 @@
+artifact_path: docker_pyfunc
+flavors:
+  python_function:
+    artifacts:
+      model:
+        path: artifacts/model.pkl
+        uri: /Users/stamatiosorphanos/Desktop/Stress_Detection/Heart Rate Prediction
+          to Monitor Stress Level/244011781004297121/model.pkl
+    cloudpickle_version: 3.1.1
+    code: null
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.pyfunc.model
+    python_model: python_model.pkl
+    python_version: 3.10.11
+    streamable: false
+mlflow_version: 2.22.0
+model_size_bytes: 4030
+model_uuid: 787e88462a4b43acb6afe082664cebb4
+prompts: null
+run_id: f75261280a444077af4d11157746c36e
+utc_time_created: '2025-06-14 11:16:54.324510'
