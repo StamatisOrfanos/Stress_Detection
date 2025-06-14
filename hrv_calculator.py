@@ -18,7 +18,7 @@ def compute_hrv_from_heart_rate(heart_rates: List[float], window_size: int = 15,
         sdnn = np.std(rr, ddof=1) if len(rr) > 1 else np.nan
         return {
             "rmssd": round(rmssd, 2),
-            "sdnn": round(sdnn, 2)
+            "sdnn": round(sdnn, 2) # type: ignore
         }
 
     results = []
@@ -31,7 +31,7 @@ def compute_hrv_from_heart_rate(heart_rates: List[float], window_size: int = 15,
         metrics = hrv_metrics(rr)
         metrics["second"] = i
         if timestamps:
-            metrics["start_timestamp"] = timestamps[i]
+            metrics["start_timestamp"] = timestamps[i] # type: ignore
         results.append(metrics)
 
     return results
