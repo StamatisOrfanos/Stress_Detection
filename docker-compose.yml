@@ -1,0 +1,7 @@
+services:
+  stress-detector:
+    build: .
+    container_name: stress-detector-app
+    ports:
+      - "5005:5005"
+    restart: unless-stopped
