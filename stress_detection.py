@@ -7,11 +7,11 @@ import matplotlib.pyplot as plt
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.svm import SVC
-from sklearn.metrics import ConfusionMatrixDisplay, accuracy_score, f1_score, precision_score, recall_score, f1_score, classification_report
-from sklearn.cluster import KMeans
+from sklearn.svm import LinearSVC
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, f1_score, classification_report
 from sklearn.ensemble import RandomForestClassifier
 from xgboost import XGBClassifier
+from sklearn.preprocessing import LabelEncoder
 import mlflow, mlflow.sklearn
 from mlflow.models.signature import ModelSignature, infer_signature
 from mlflow.pyfunc import PythonModel # type: ignore
@@ -78,6 +78,9 @@ def data_loader(dataset_name: str, dataset: str):
     # Ensure 'label' column exists for downstream code
     if 'label' not in data.columns:
         raise ValueError(f"'label' column not found after processing {dataset_name}. Columns are: {data.columns.tolist()}")
+
+    label_encoder = LabelEncoder()
+    data['label'] = label_encoder.fit_transform(data['label'])
     
     return data
 
@@ -95,9 +98,7 @@ if __name__ == '__main__':
     models = {
         'Logistic Regression':     LogisticRegression(max_iter=100, random_state=26),
         'Random Forest':           RandomForestClassifier(n_estimators=10, random_state=26, min_samples_leaf=1, max_features='sqrt'),
-        'SVM (Linear Kernel)':     SVC(kernel='linear', C=1.0, gamma='scale', random_state=26),
-        'SVM (RBF Kernel)':        SVC(kernel='rbf', C=1.0, gamma='scale', random_state=26),
-        'SVM (Polynomial Kernel)': SVC(kernel='poly', C=1.0, gamma='scale', random_state=26),
+        'SVM (Linear Kernel)':     LinearSVC(C=1.0, max_iter=10000, random_state=26),
         'XGBoost':                 XGBClassifier(eval_metric='logloss'),
         'KNN':                     KNeighborsClassifier(n_neighbors=5),
     }
@@ -108,8 +109,7 @@ if __name__ == '__main__':
     for dataset_name, dataset in datasets.items():
         
         # Create a different experiment for each dataset to save each model and the results under a different run
-        tracking_dir = os.path.join(os.getcwd(), 'mlruns', simple_slugify(dataset_name))
-        mlflow.set_tracking_uri(f"file://{tracking_dir}")
+        mlflow.set_tracking_uri(f'{dataset_name}')
           
         # Load dataset
         data = data_loader(dataset_name, dataset)
@@ -182,7 +182,6 @@ if __name__ == '__main__':
             })
             
             mlflow.end_run()
-            break
     print('\n')
     
     # Convert to DataFrame and find best per dataset
