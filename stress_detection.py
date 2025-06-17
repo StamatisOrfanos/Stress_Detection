@@ -119,7 +119,7 @@ if __name__ == '__main__':
         X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, random_state=42)
             
         for model_name, model in models.items():
-
+            if model_name == 'XGBoost' and dataset_name == 'Stress Predict': continue
             print(f'Training on dataset: {dataset_name} with model: {model_name}')
             experiment = mlflow.set_experiment(experiment_name=model_name)
             print("Experiment_id: {}".format(experiment.experiment_id))

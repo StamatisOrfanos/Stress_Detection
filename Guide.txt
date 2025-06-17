@@ -1,0 +1,9 @@
+1. Go the the best model for the dataset of our choice and go under the specific run that had the best performance
+    1.1. cd <dataset_name>/<experiment_id>/<run_id>/artifacts/docker_ready
+2. Check the Dockerfile here
+3. Run: docker build -t stress-detector .
+4. Run: docker run -p 5000:5000 stress-detector
+5. Test using Postman:
+curl -X POST http://localhost:5000/invocations \
+  -H "Content-Type: application/json" \
+  -d '{"columns":["HR", "HRV"], "data":[[72, 45], [85, 60]]}'
