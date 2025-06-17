@@ -1,7 +1,14 @@
+version: '3.8'
+
 services:
   stress-detector:
-    build: .
+    build:
+      context: .
+      args:
+        URL: ${URL}   # From .env file
     container_name: stress-detector-app
     ports:
       - "5005:5005"
+    env_file:
+      - .env
     restart: unless-stopped
