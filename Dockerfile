@@ -2,7 +2,7 @@ FROM python:3.10-slim
 
 RUN pip install mlflow scikit-learn xgboost pandas joblib
 
-# Copy model
+# Copy best model, provide the whole path for the docker_ready model
 COPY ./docker_ready /opt/ml/model
 
 # Serve
