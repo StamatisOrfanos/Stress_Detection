@@ -1,5 +1,5 @@
 # Import libraries
-import os, warnings, joblib
+import os, warnings, joblib, re, io, unicodedata, hashlib 
 import pandas as pd
 import numpy as np
 import seaborn as sns
@@ -14,13 +14,27 @@ from sklearn.ensemble import RandomForestClassifier
 from xgboost import XGBClassifier
 import mlflow, mlflow.sklearn
 from mlflow.models.signature import ModelSignature, infer_signature
-import io
 from mlflow.pyfunc import PythonModel # type: ignore
 warnings.filterwarnings('always')
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 # Import Data Paths
 data_path = os.getcwd() + '/data' 
+
+def simple_slugify(text, max_length=100):
+    """
+    Create a safe folder or filename from a string by removing special characters,
+    converting spaces to underscores, and optionally truncating with a hash suffix.
+    """
+    if not isinstance(text, str) or text is None:
+        text = 'unknown'
+    text = unicodedata.normalize('NFKD', text)
+    text = re.sub(r'[^\w\s-]', '', text)  # Remove non-alphanumeric characters
+    text = re.sub(r'[-\s]+', '_', text).strip('_').lower()  # Convert to snake_case
+    if len(text) > max_length:
+        hash_suffix = hashlib.md5(text.encode()).hexdigest()[:8]
+        text = text[:max_length-9] + '_' + hash_suffix
+    return text
 
 
 class SklearnWrapper(PythonModel):
@@ -68,8 +82,6 @@ def data_loader(dataset_name: str, dataset: str):
     return data
 
 
-
-
 if __name__ == '__main__':
     
     datasets = {
@@ -96,8 +108,9 @@ if __name__ == '__main__':
     for dataset_name, dataset in datasets.items():
         
         # Create a different experiment for each dataset to save each model and the results under a different run
-        mlflow.set_tracking_uri(f'{dataset_name}')
-        
+        tracking_dir = os.path.join(os.getcwd(), 'mlruns', simple_slugify(dataset_name))
+        mlflow.set_tracking_uri(f"file://{tracking_dir}")
+          
         # Load dataset
         data = data_loader(dataset_name, dataset)
         X = data[['HR', 'HRV']]
@@ -158,8 +171,7 @@ if __name__ == '__main__':
                 conda_env=mlflow.sklearn.get_default_conda_env() # type: ignore
             )
 
-            print(f'[{dataset_name}] {model_name} - Accuracy: {acc:.4f} - F1: {f1:.4f}')
-            print('\n\n')
+            print(f'[{dataset_name}] {model_name} - Accuracy: {acc:.4f} - F1: {f1:.4f}\n\n')
             best_models.append({
             'dataset'  : dataset_name,
             'model'    : model_name,
@@ -171,6 +183,7 @@ if __name__ == '__main__':
             
             mlflow.end_run()
             break
+    print('\n')
     
     # Convert to DataFrame and find best per dataset
     results_df = pd.DataFrame(best_models)
@@ -180,15 +193,3 @@ if __name__ == '__main__':
     results_csv_path = 'best_models_summary.csv'
     best_per_dataset.to_csv(results_csv_path, index=False)
     print(f"Saved best model summary to {results_csv_path}")
-            
-            
-
-
-
-
-
-
-
-
-
-
