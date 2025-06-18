@@ -11,3 +11,4 @@ SWELL Dataset/
 Stress Predict/
 /Random Forest
 .env
+mlruns/
