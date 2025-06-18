@@ -1,0 +1,13 @@
+services:
+  stress-detector::
+    build:
+      context: .
+      args:
+        URL: ${URL} 
+    image: $IMAGE_NAME
+    container_name: stress-detector-server
+    ports:
+      - "5002:5002"  
+    environment:
+      - PYTHONUNBUFFERED=1  
+    restart: unless-stopped

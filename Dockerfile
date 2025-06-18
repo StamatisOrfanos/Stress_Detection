@@ -28,5 +28,5 @@ RUN python deployment_utils.py && \
     find model_temp -type f -name "model.pkl" -exec mv {} model_weights/model.pkl \; && \
     rm -rf model_temp stress_detector_weights.zip
 
-EXPOSE 5005
+EXPOSE 5002
 CMD ["python", "-u", "main.py"]
