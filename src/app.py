@@ -4,8 +4,10 @@ import pandas as pd
 import joblib
 import os
 from deployment_utils import init_model_weights
+from dotenv import load_dotenv
 
 # Step 1: Download model weights at runtime if needed
+load_dotenv()  # Load environment variables from .env fil
 MODEL_URL = os.getenv('URL')  # Make sure this is passed in via docker-compose
 init_model_weights(MODEL_URL) # type: ignore
 
