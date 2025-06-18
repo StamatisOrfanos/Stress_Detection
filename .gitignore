@@ -11,4 +11,4 @@ SWELL Dataset/
 Stress Predict/
 /Random Forest
 .env
-mlruns/
+mlruns/stress_detector_weights.zip
