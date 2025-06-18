@@ -1,5 +1,5 @@
 services:
-  stress-detector::
+  stress-detector:
     image: $IMAGE_NAME
     container_name: stress-detector-server
     ports:
