@@ -14,15 +14,6 @@ The purpose of this repository is to find, test and create new processes for str
 
 4. [Heart Rate Prediction to Monitor Stress Level](https://www.kaggle.com/datasets/vinayakshanawad/heart-rate-prediction-to-monitor-stress-level): The data comprises various attributes taken from signals measured using ECG recorded for different individuals having different heart rates at the time the measurement was taken. These various features contribute to the heart rate at the given instant of time for the individual.
 
-## Libraries
-
-We also used a set of custom libraries created by other authors in order to have a better understanding of the data and create a better Explanatory Data Analysis. Some of those libraries are:
-
-1. [pyhrv](https://github.com/PGomes92/pyhrv)
-2. [hrv-analysis](https://github.com/Aura-healthcare/hrv-analysis)
-3. [wearable-hrv](https://github.com/AminSinichi/wearable-hrv)
-4. [Stress-Prediction-Using-HRV](https://github.com/realmichaelye/Stress-Prediction-Using-HRV)
-5. [Stress Prediction using Wearable Device Data](https://github.com/kjspring/stress-detection-wearable-devices)
 
 ## Strategy
 
