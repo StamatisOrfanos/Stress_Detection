@@ -2,8 +2,6 @@
 import os, warnings, joblib, re, io, unicodedata, hashlib 
 import pandas as pd
 import numpy as np
-import seaborn as sns
-import matplotlib.pyplot as plt
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
@@ -13,7 +11,7 @@ from sklearn.ensemble import RandomForestClassifier
 from xgboost import XGBClassifier
 from sklearn.preprocessing import LabelEncoder
 import mlflow, mlflow.sklearn
-from mlflow.models.signature import ModelSignature, infer_signature
+from mlflow.models.signature import infer_signature
 from mlflow.pyfunc import PythonModel # type: ignore
 warnings.filterwarnings('always')
 warnings.filterwarnings("ignore", category=DeprecationWarning)
