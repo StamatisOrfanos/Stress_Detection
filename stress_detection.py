@@ -100,7 +100,6 @@ if __name__ == '__main__':
         'Random Forest':           RandomForestClassifier(n_estimators=10, random_state=26, min_samples_leaf=1, max_features='sqrt'),
         'SVM (Linear Kernel)':     LinearSVC(C=1.0, max_iter=10000, random_state=26),
         'XGBoost':                 XGBClassifier(eval_metric='logloss'),
-        'KNN':                     KNeighborsClassifier(n_neighbors=5),
     }
     
     # Store the best model per dataset     
@@ -159,8 +158,7 @@ if __name__ == '__main__':
                 
             # Save and log model in pickle format
             pkl_path = f'{experiment.artifact_location}/model.pkl'
-            joblib.dump(model, pkl_path)
-            mlflow.log_artifact(pkl_path)
+            joblib.dump(model, pkl_path, compress=3)
             mlflow.sklearn.log_model(model, model_name, signature=signature, input_example=X_test.iloc[:5]) # type: ignore
 
             # Optional: log Docker-ready model using pyfunc
