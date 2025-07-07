@@ -1,3 +1,4 @@
+from typing import Optional
 from fastapi import FastAPI
 from pydantic import BaseModel
 from pandas import DataFrame
@@ -22,7 +23,9 @@ model = load(MODEL_PATH)
 server = FastAPI(title='Stress Detector API')
 
 class DataFrameInput(BaseModel):
-    dataframe_split: dict  # {columns: [...], data: [...]}
+    dataframe_split: dict # {columns: [...], data: [...]}
+    questionnaire: Optional[int] = None
+    
 
 @server.get('/health')
 def health_check():

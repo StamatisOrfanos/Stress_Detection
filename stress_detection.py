@@ -96,7 +96,7 @@ if __name__ == '__main__':
 
     # Define models
     models = {
-        'Logistic Regression':     LogisticRegression(max_iter=100, random_state=26),
+        'Logistic Regression':     LogisticRegression(max_iter=100, random_state=26, ),
         'Random Forest':           RandomForestClassifier(n_estimators=10, random_state=26, min_samples_leaf=1, max_features='sqrt'),
         'SVM (Linear Kernel)':     LinearSVC(C=1.0, max_iter=10000, random_state=26),
         'XGBoost':                 XGBClassifier(eval_metric='logloss'),
