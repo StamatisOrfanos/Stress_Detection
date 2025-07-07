@@ -4,6 +4,24 @@
 3. Run: docker build -t stress-detector .
 4. Run: docker run -p 5000:5000 stress-detector
 5. Test using Postman:
-curl -X POST http://localhost:5000/invocations \
+curl -X POST http://localhost:5002/predict \
   -H "Content-Type: application/json" \
-  -d '{"columns":["HR", "HRV"], "data":[[72, 45], [85, 60]]}'
+  -d '{
+        "dataframe_split": {
+          "columns": ["HR", "HRV"],
+          "data": [
+            [75, 45],
+            [78, 50],
+            [80, 42],
+            [85, 39],
+            [83, 38],
+            [82, 37],
+            [79, 40],
+            [76, 41],
+            [74, 44],
+            [77, 43]
+          ]
+        },
+        "questionnaire": 2
+      }'
+
