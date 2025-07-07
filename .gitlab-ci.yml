@@ -26,7 +26,7 @@ dockerize:
 deploy_staging:
   stage: deploy
   variables:
-    HOST: "cdi-models2.cbml-unipi.gr"
+    HOST: "ai4work1.cbml-unipi.gr"
     USER: "ubuntu"
     APP_DIR: "/apps/stress-detector"
   before_script:
@@ -38,7 +38,7 @@ deploy_staging:
     - ssh -oStrictHostKeyChecking=no -i id_rsa $USER@$HOST 'bash -s' < deployment/deploy.sh $CI_REGISTRY $IMAGE_NAME $CI_JOB_TOKEN $APP_DIR
   environment:
     name: staging
-    url: https://cdi-models2.cbml-unipi.gr
+    url: https://ai4work1.cbml-unipi.gr
   tags:
     - docker
   only:
