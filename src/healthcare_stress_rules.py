@@ -235,7 +235,7 @@ def compute_stress_healthcare(
     }
 
 
-def compute_confidence(*, hrv_present: bool, hr_missing_ratio: float, model_used: bool, post_sr_present: bool,) -> float:
+def healthcare_compute_confidence(*, hrv_present: bool, hr_missing_ratio: float, model_used: bool, post_sr_present: bool,) -> float:
     conf = 1.0
 
     if not hrv_present:

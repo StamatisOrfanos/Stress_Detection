@@ -1,8 +1,8 @@
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Literal, Optional
 from pydantic import BaseModel
 
 
-class StressComputeInput(BaseModel):
+class EducationComputeInput(BaseModel):
     dataframe_split: Dict[str, Any]
 
     # Baseline
@@ -28,3 +28,34 @@ class StressComputeInput(BaseModel):
     credit_overload: int = 0
     work_hours_week: int = 0
     commute_minutes_day: int = 0
+    
+class HealthcareStressInput(BaseModel):
+    # --- ML input ---
+    dataframe_split: Dict[str, Any]
+
+    # --- Baseline (per nurse) ---
+    hr_base: float
+    hrv_base: float
+    steps_base: int
+
+    # --- Shift observations ---
+    hr_shift: float
+    hrv_shift: Optional[float] = None
+    steps_shift: int
+
+    # --- Questionnaires ---
+    pre_sr: Optional[int] = None    # 0,1,2
+    post_sr: Optional[int] = None   # 0,1,2
+    weekly_sr: Optional[int] = None # 0,1,2
+
+    # --- Scheduling / context ---
+    shift_type: Literal["day", "evening", "night"]
+    pref_match: bool
+    consecutive_shifts: int
+    hours_since_last_shift: float
+    overtime_hours: float = 0.0
+
+
+class DataFrameInput(BaseModel):
+    dataframe_split: dict
+    questionnaire: Optional[int] = None

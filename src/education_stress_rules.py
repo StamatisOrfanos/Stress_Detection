@@ -243,8 +243,7 @@ def education_compute_stress(
         "overrides": override_out["overrides"],
     }
     
-    
-def compute_confidence(*, hrv_session: Optional[float], hr_missing_ratio: float, model_used: bool, post_sr_present: bool, sleep_present: bool,) -> float:
+def education_compute_confidence(*, hrv_session: Optional[float], hr_missing_ratio: float, model_used: bool, post_sr_present: bool, sleep_present: bool,) -> float:
     """
     This function computes a confidence score for the stress computation based on the availability of certain data points.
 

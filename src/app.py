@@ -8,12 +8,13 @@ from joblib import load
 from os import getenv, path
 from deployment_utils import init_model_weights
 from dotenv import load_dotenv
-from src.input import StressComputeInput
-from education_stress_rules import education_compute_stress, compute_confidence
+from src.healthcare_stress_rules import compute_stress_healthcare, healthcare_compute_confidence
+from src.input import DataFrameInput, EducationComputeInput, HealthcareStressInput
+from education_stress_rules import education_compute_confidence, education_compute_stress
 
 # Step 1: Download model weights at runtime if needed
-load_dotenv()  # Load environment variables from .env fil
-MODEL_URL = getenv('URL')  # Make sure this is passed in via docker-compose
+load_dotenv() 
+MODEL_URL = getenv('URL')
 init_model_weights(MODEL_URL) # type: ignore
 
 # Step 2: Load model
@@ -25,16 +26,17 @@ model = load(MODEL_PATH)
 # Step 3: Start API
 server = FastAPI(title='Stress Detector API')
 
-class DataFrameInput(BaseModel):
-    dataframe_split: dict
-    questionnaire: Optional[int] = None
     
 
+
+
+# # ------------------------------------------- Health Check Endpoint ----------------------------------------
 @server.get('/health')
 def health_check():
     return {'status': 'ok', 'message': 'Model loaded successfully.'}
 
 
+# ------------------------------------------- Generic Prediction Endpoint ----------------------------------------
 @server.post('/predict')
 def predict(input_data: DataFrameInput):
     try:
@@ -78,7 +80,7 @@ def predict(input_data: DataFrameInput):
 
 # ------------------------------------------- Education Stress Compute Endpoint ----------------------------------------
 @server.post("/stress/compute/education")
-def education_stress_compute(payload: StressComputeInput):
+def education_stress_compute(payload: EducationComputeInput):
 
     df = DataFrame(data=payload.dataframe_split["data"], columns=payload.dataframe_split["columns"],)
     model_prob = None
@@ -111,7 +113,7 @@ def education_stress_compute(payload: StressComputeInput):
     )
 
     # Confidence
-    confidence = compute_confidence(
+    confidence = education_compute_confidence(
         hrv_session=payload.hrv_session,
         hr_missing_ratio=0.0,
         model_used=model_used,
@@ -130,3 +132,49 @@ def education_stress_compute(payload: StressComputeInput):
 
 
 # ------------------------------------------- Healthcare Stress Compute Endpoint ----------------------------------------
+@server.post("/stress/compute/healthcare")
+def stress_compute_healthcare(payload: HealthcareStressInput):
+
+    df = DataFrame(
+        payload.dataframe_split["data"],
+        payload.dataframe_split["columns"],
+    )
+
+    model_prob = None
+    model_used = False
+
+    if hasattr(model, "predict_proba"):
+        proba = model.predict_proba(df)
+        model_prob = float(mean(proba[:, 1]))
+        model_used = True
+
+    result = compute_stress_healthcare(
+        hr_base=payload.hr_base,
+        hrv_base=payload.hrv_base,
+        steps_base=payload.steps_base,
+        hr_shift=payload.hr_shift,
+        hrv_shift=payload.hrv_shift,
+        steps_shift=payload.steps_shift,
+        model_stress_prob=model_prob,
+        pre_sr=payload.pre_sr,
+        post_sr=payload.post_sr,
+        weekly_sr=payload.weekly_sr,
+        shift_type=payload.shift_type,
+        pref_match=payload.pref_match,
+        consecutive_shifts=payload.consecutive_shifts,
+        hours_since_last_shift=payload.hours_since_last_shift,
+        overtime_hours=payload.overtime_hours,
+    )
+
+    confidence = healthcare_compute_confidence(
+        hrv_present=payload.hrv_shift is not None,
+        hr_missing_ratio=0.0,
+        model_used=model_used,
+        post_sr_present=payload.post_sr is not None,
+    )
+
+    return {
+        "stress": result,
+        "confidence": round(confidence, 2),
+        "needs_review": confidence < 0.6,
+    }
