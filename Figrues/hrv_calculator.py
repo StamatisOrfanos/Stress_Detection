@@ -20,7 +20,7 @@ def compute_hrv_column_fast(data_pd: pd.DataFrame, step: int = 15, jitter_std: f
     data_pd['datetime'] = pd.to_datetime(data_pd['datetime'])
 
     # Compute time gaps between consecutive rows
-    time_deltas = data_pd['datetime'].diff().dt.total_seconds()
+    time_deltas = data_pd['datetime'].diff().dt.total_seconds() # type: ignore
     time_deltas.iloc[0] = 1  # prevent NaN at start
     gap_mask = (time_deltas != 1).astype(int).cumsum()
 
@@ -58,7 +58,7 @@ def compute_hrv_column_unix_time(data_pd: pd.DataFrame, time_col: str = 'Time(se
     data_pd['timestamp'] = pd.to_datetime(data_pd[time_col], unit='s')
 
     # Detect gaps in timestamp continuity (i.e., != 1 second)
-    time_deltas = data_pd['timestamp'].diff().dt.total_seconds()
+    time_deltas = data_pd['timestamp'].diff().dt.total_seconds() # type: ignore
     time_deltas.iloc[0] = 1
     gap_mask = (time_deltas != 1).astype(int).cumsum()
 
