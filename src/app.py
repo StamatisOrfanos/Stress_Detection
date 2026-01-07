@@ -127,3 +127,6 @@ def education_stress_compute(payload: StressComputeInput):
         "confidence": round(confidence, 2),
         "needs_review": needs_review,
     }
+
+
+# ------------------------------------------- Healthcare Stress Compute Endpoint ----------------------------------------
