@@ -156,7 +156,6 @@ def overall_stress(ps: float, srs: float, alc: float) -> float:
     """
     This function computes the overall stress score based on physiological stress, self-reported stress, and academic context stress.
     
-
     Args:
         ps (float): Physiological stress score.
         srs (float): Self-reported stress score.
@@ -170,8 +169,7 @@ def overall_stress(ps: float, srs: float, alc: float) -> float:
 # --------------------------------------------------------------------------------------------------------------------------
 
 
-# --------------------------------------------------------------------------------------------------------------------------
-# Main Entry Point
+# Main Entry Point ---------------------------------------------------------------------------------------------------------
 def education_compute_stress(
     *,
     # Baseline

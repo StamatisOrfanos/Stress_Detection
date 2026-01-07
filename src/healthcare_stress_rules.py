@@ -108,6 +108,23 @@ def contextual_load(shift_type: str, pref_match: bool, consecutive_shifts: int, 
 # Overrides ---------------------------------------------------------------------------------------
 def apply_overrides(ps: float, srs: float, cls: float, *, post_sr: Optional[int], hrv_shift: Optional[float], 
                     hrv_base: float, shift_type: str, pref_match: bool, consecutive_shifts: int,) -> Dict[str, Any]:
+    """
+    This function applies override rules to adjust the physiological stress (ps) and contextual load (cls) scores.
+
+    Args:
+        ps (float): Physiological stress score.
+        srs (float): Self-reported stress score.
+        cls (float): Contextual load score.
+        post_sr (Optional[int]): Post-session questionnaire score.
+        hrv_shift (Optional[float]): Heart rate variability shift value.
+        hrv_base (float): Heart rate variability baseline value.
+        shift_type (str): Type of shift ("day", "evening", "night").
+        pref_match (bool): Preference match for shift type.
+        consecutive_shifts (int): Number of consecutive shifts.
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the adjusted physiological stress score, contextual load score, and a list of applied overrides.
+    """
     
     overrides = []
 
@@ -129,28 +146,21 @@ def apply_overrides(ps: float, srs: float, cls: float, *, post_sr: Optional[int]
     }
 
 def overall_stress(ps: float, srs: float, cls: float) -> float:
+    """
+    This function computes the overall stress score based on physiological stress, self-reported stress, and academic context stress.
+
+    Args:
+        ps (float): Physiological stress score.
+        srs (float): Self-reported stress score.
+        cls (float): Contextual load score.
+
+    Returns:
+        float: Overall stress score.
+    """
     return clamp(0.5 * ps + 0.3 * srs + 0.2 * cls, 0.0, 100.0)
 
 # -----------------------------------------------------------------------------------------------------------------
 
-
-
-# Confidence -------------------------------------------------------------------------------------------------------
-def compute_confidence(*, hrv_present: bool, hr_missing_ratio: float, model_used: bool, post_sr_present: bool,) -> float:
-    conf = 1.0
-
-    if not hrv_present:
-        conf -= 0.25
-    if hr_missing_ratio > 0.10:
-        conf -= 0.15
-    if not model_used:
-        conf -= 0.10
-    if not post_sr_present:
-        conf -= 0.10
-
-    return max(conf, 0.4)
-
-# -------------------------------------------------------------------------------------------------------
 
 
 # Main Entry Point ---------------------------------------------------------------------------------------
@@ -223,3 +233,18 @@ def compute_stress_healthcare(
         "classification": label,
         "overrides": override_out["overrides"],
     }
+
+
+def compute_confidence(*, hrv_present: bool, hr_missing_ratio: float, model_used: bool, post_sr_present: bool,) -> float:
+    conf = 1.0
+
+    if not hrv_present:
+        conf -= 0.25
+    if hr_missing_ratio > 0.10:
+        conf -= 0.15
+    if not model_used:
+        conf -= 0.10
+    if not post_sr_present:
+        conf -= 0.10
+
+    return max(conf, 0.4)
