@@ -10,5 +10,13 @@ Nurse Stress Prediction Wearable Sensors/
 SWELL Dataset/
 Stress Predict/
 /Random Forest
+<<<<<<< HEAD
+<<<<<<< HEAD
 .env
 mlruns/stress_detector_weights.zip
+=======
+.env
+>>>>>>> ff403a1 (Set up deployment and create app)
+=======
+.env
+>>>>>>> ff403a1 (Set up deployment and create app)

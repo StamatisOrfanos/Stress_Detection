@@ -1,63 +1,346 @@
-# Stress_Detection
+# Stress Computation Service
 
-This is a directory for Stress detection using simple statistical methods, Machine Learning and Deep Learning models
+## Rule-Based Stress Estimation for Education & Healthcare Pilots**
 
-The purpose of this repository is to find, test and create new processes for stress detection. In this repository we will test the performance of simple statistical models, machine learning and deep learning models in order to find the best solution for the problem of stress detection. from Additionally we will link below some of the datasets that we are going to test the models on.
+## 1. Overview
 
-## Datasets
+This service provides **deterministic, auditable stress estimation** for two distinct pilots:
 
-1. [Nurse Stress Prediction Wearable Sensors](https://www.kaggle.com/datasets/priyankraval/nurse-stress-prediction-wearable-sensors): Similarly in this dataset we use the heart rate data in order to calculate heart rate variability that is going to be used for the models.
+* **Education pilot** (students, academic scheduling)
+* **Healthcare pilot** (nursing staff, shift scheduling)
 
-2. [SWELL dataset](https://www.kaggle.com/datasets/qiriro/swell-heart-rate-variability-hrv): This dataset comprises of heart rate variability (HRV) indices computed from the multimodal SWELL knowledge work (SWELL-KW) dataset for research on stress and user modeling, see [SWELL-KW](http://cs.ru.nl/~skoldijk/SWELL-KW/Dataset.html).
+The system combines:
 
-3. [Stress-Predict-Dataset](https://github.com/italha-d/Stress-Predict-Dataset): This dataset is associated with "Stress Monitoring Using Wearable Sensors: A Pilot Study and Stress-Predict Dataset" paper.
+* physiological signals (HR, HRV, steps),
+* self-reported stress,
+* contextual / scheduling constraints,
+* optional machine-learning outputs,
 
-4. [Heart Rate Prediction to Monitor Stress Level](https://www.kaggle.com/datasets/vinayakshanawad/heart-rate-prediction-to-monitor-stress-level): The data comprises various attributes taken from signals measured using ECG recorded for different individuals having different heart rates at the time the measurement was taken. These various features contribute to the heart rate at the given instant of time for the individual.
+into a **single stress score (0–100)** with:
 
+* transparent rule logic,
+* explicit overrides for high-risk situations,
+* confidence estimation for data quality.
 
-## Strategy
+> **Important**
+> Machine Learning is treated as **one signal**, not as the decision authority.
+> Final stress scores are always rule-governed.
 
-In the design of our architecture for Stress Detection we decided to use off the self devices that we can use in order to get heart rate measurements.
-In this directory we are going to use the heart rate data in order to get HRV metrics like SDNN and RMSSD. Using these metrics we are going to create
-three different approaches to stress detection. Now HRV is a concept that refers to the variation in time between heartbeats, and it’s quantified
-through various metrics — not just one.
+## 2. Design Philosophy
 
-| Metric  | Meaning                                                                                               |
-| ------- | ------------------------------------------------------------------------------------------------------|
-| SDNN    |Standard deviation of all NN (normal-to-normal) intervals. Reflects overall HRV                        |
-| RMSSD   |Root mean square of successive RR differences. Sensitive to short-term vagal (parasympathetic) activity|
+### Why rule-based?
 
-Since we have a 2-5-minute window of values, we can use PPG-derived (photoplethysmography) approximated RR intervals from HR and return RMSSD as the
-main HRV value.
+* Stress estimation affects **scheduling and wellbeing**
+* Decisions must be **explainable**
+* Edge cases (exam weeks, night shifts) must not be averaged away
+* Missing data must degrade safely
 
-## Theoretical Background
+### Core principles
 
-Although HRV manifests as a function of the heart rate, it actually originates from the nervous system. The autonomic nervous system, which controls the involuntary aspects of the physiology, has two branches, parasympathetic (deactivating) and sympathetic (activating). The parasympathetic nervous system handles inputs from internal organs, like digestion or your fingernails and hair growing. It causes a decrease in heart rate. The sympathetic nervous system reflects responses to things like stress and exercise, and increases your heart rate and blood pressure. Heart rate variability comes from these two
-competing branches simultaneously sending signals to your heart. If your nervous system is balanced, your heart is constantly being told to beat slower
-by your parasympathetic system, and beat faster by your sympathetic system. This causes a fluctuation in your heart rate: **HRV**.
+* **Personal baselines**, not population averages
+* **Physiology first**, context second, perception third
+* **Overrides beat averages**
+* **Confidence is explicit**, not implicit
 
-When somebody has high a heart rate variability, it means that the body is responsive to both sets of inputs (parasympathetic and sympathetic). This is
-a sign that the nervous system is balanced, and that your body is very capable of adapting to its environment and performing at its best. On the other hand, if somebody has a low heart rate variability, one branch is dominating (usually the sympathetic) and sending stronger signals to your heart than the other.
+## 3. High-Level Architecture
 
-There are times when this is a good thing--like if somebody is running a race we want the body to focus on allocating resources to your legs (sympathetic activity) as opposed to digesting food (parasympathetic activity). However, if you’re not doing something active low HRV indicates your body is working hard for some other
-reason (maybe you're fatigued, dehydrated, stressed, or sick and need to recover), which leaves fewer resources available to dedicate towards exercising, competing,
-giving a presentation at work, etc.
+```
+biosignals ─┐
+            ├─► Normalization ─► Physiological Stress (PS)
+ML model ───┘
 
-### Normal Heart Rate Variability
+questionnaires ─► Self-Reported Stress (SRS)
 
-![normal_hrv](./Figrues/heart_rate_variability_by_age.png)
+context ─► Academic Load (ALC) / Contextual Load (CLS)
 
-### Heart Rate Variability Trends are What Matters
+PS + SRS + ALC/CLS
+        └─► Overrides
+                └─► Final Aggregation
+                        └─► Confidence
+```
+Each pilot implements the **same pattern**, but with **pilot-specific rules and weights**.
 
-When you begin using a heart rate variability monitor, you may notice that your HRV varies greatly from day to day. This can be attributed to the many
-factors that affect it, and is perfectly normal. If your friend has a higher HRV than you do today, that is not an indication that they are more fit
-than you are. Rather than comparing your heart rate variability to others, a more practical use of HRV is to follow your own long-term trends. For
-example, if you’re taking steps to improve your fitness and overall health, over time you should see a gradual increase in your average heart rate
-variability.
+## 4. Endpoints
 
-![Trends](./Figrues/hrv_trends.png)
+### 4.1 Education Pilot
 
-### Is it better to have high or low HRV?
+```
+POST /stress/compute
+```
 
-In general, a higher heart rate variability (HRV) is considered better as it indicates a more adaptable and resilient autonomic nervous system, which can respond effectively to different stressors. Conversely, a low HRV may be associated with an increased risk for various health problems, such as
-cardiovascular disease, depression, and anxiety. However, any major deviation outside of your typical range can represent an imbalance of the autonomic nervous system.
+Used for **students** during lectures, labs, exams, or self-study.
+
+### 4.2 Healthcare Pilot
+
+```
+POST /stress/compute/healthcare
+```
+
+Used for **nursing staff** during work shifts.
+
+---
+
+## 5. Education Pilot — Rules Summary
+
+### 5.1 Inputs
+
+#### Baseline (per student)
+
+* `hr_base` – resting HR mean
+* `hrv_base` – RMSSD median
+* `steps_base` – median daily steps
+
+#### Session data
+
+* `hr_session`
+* `hrv_session` (optional)
+* `steps_session`
+* `sleep_last_24h` (optional)
+
+#### Questionnaires
+
+* `pre_sr` ∈ {0,1,2}
+* `post_sr` ∈ {0,1,2}
+* `weekly_sr` ∈ {0,1,2}
+
+#### Academic context
+
+* deadlines within 72h
+* hours until next exam
+* consecutive sessions
+* credit overload
+* work hours
+* commute duration
+
+---
+
+### 5.2 Core Scores
+
+#### Physiological Stress (PS)
+
+* HR and HRV normalized **per student**
+* HRV weighted more heavily than HR
+* Physical activity reduces false stress detection
+* ML probability used if available, fallback otherwise
+
+#### Self-Reported Stress (SRS)
+
+* Weighted:
+
+  * 50% post-session
+  * 35% pre-session
+  * 15% weekly
+
+#### Academic Load (ALC)
+
+* Deadline pressure
+* Exam proximity
+* Sleep debt
+* Scheduling density
+* External workload
+
+---
+
+### 5.3 Overrides (Education)
+
+Examples:
+
+* Exam < 48h **and** high SRS ⇒ PS ≥ 80
+* HRV collapse ⇒ PS + 8
+* ≥ 3 deadlines + dense schedule ⇒ ALC + 8
+* Severe sleep deprivation ⇒ global offset
+
+Overrides ensure **non-linear risk escalation is not averaged out**.
+
+---
+
+### 5.4 Final Aggregation
+
+```
+Overall Stress =
+0.50 × PS
+0.25 × SRS
+0.25 × ALC
+```
+
+Classification:
+
+* `0–33` → Low
+* `34–66` → Moderate
+* `67–100` → High
+
+---
+
+## 6. Healthcare Pilot — Rules Summary
+
+### 6.1 Inputs
+
+#### Baseline (per nurse)
+
+* `hr_base`
+* `hrv_base`
+* `steps_base` (per 8h shift)
+
+#### Shift data
+
+* `hr_shift`
+* `hrv_shift` (optional)
+* `steps_shift`
+
+#### Questionnaires
+
+* `pre_sr`, `post_sr`, `weekly_sr`
+
+#### Scheduling context
+
+* `shift_type`: day / evening / night
+* `pref_match`: preference satisfied
+* consecutive shifts
+* hours since last shift
+* overtime hours
+
+---
+
+### 6.2 Core Scores
+
+#### Physiological Stress (PS)
+
+Same structure as education pilot, tuned for **occupational fatigue**.
+
+#### Self-Reported Stress (SRS)
+
+Healthcare-specific point mapping:
+
+* Post-shift stress has highest impact
+* Reflects acute exhaustion
+
+#### Contextual Load Score (CLS)
+
+Accounts for:
+
+* night shifts
+* preference mismatch
+* short recovery windows
+* consecutive shifts
+* overtime
+
+### 6.3 Overrides (Healthcare)
+
+Examples:
+
+* High PS + high post-shift SR ⇒ force high classification
+* HRV collapse ⇒ PS + 8
+* ≥ 4 night shifts with mismatch ⇒ CLS + 10
+
+Designed to capture **burnout risk**, not just momentary stress.
+
+### 6.4 Final Aggregation
+
+```
+Overall Stress =
+0.50 × PS
+0.30 × SRS
+0.20 × CLS
+```
+
+---
+
+## 7. Confidence & Data Quality (Both Pilots)
+
+Each response includes a **confidence score ∈ [0.4, 1.0]**.
+Confidence penalties:
+
+* HRV missing
+* HR missing > 10%
+* ML model unavailable (fallback used)
+* Missing post-session / post-shift questionnaire
+* Missing sleep data (education)
+
+Rule:
+
+```
+confidence < 0.6 → needs_review = true
+```
+
+This prevents silent reliance on low-quality data.
+
+## 8. API Inputs
+
+### 8.1 Education Input (simplified)
+
+```json
+{
+  "dataframe_split": { "columns": [...], "data": [...] },
+  "hr_base": 65,
+  "hrv_base": 42,
+  "steps_base": 7000,
+  "hr_session": 82,
+  "hrv_session": 28,
+  "steps_session": 3200,
+  "sleep_last_24h": 5.5,
+  "pre_sr": 1,
+  "post_sr": 2,
+  "weekly_sr": 1,
+  "deadlines_72h": 2,
+  "exam_hours_until": 36,
+  "back_to_back_sessions": 3,
+  "credit_overload": 3,
+  "work_hours_week": 12,
+  "commute_minutes_day": 40
+}
+```
+
+### 8.2 Healthcare Input (simplified)
+
+```json
+{
+  "dataframe_split": { "columns": [...], "data": [...] },
+  "hr_base": 62,
+  "hrv_base": 48,
+  "steps_base": 9000,
+  "hr_shift": 88,
+  "hrv_shift": 30,
+  "steps_shift": 11000,
+  "pre_sr": 1,
+  "post_sr": 2,
+  "weekly_sr": 1,
+  "shift_type": "night",
+  "pref_match": false,
+  "consecutive_shifts": 4,
+  "hours_since_last_shift": 10,
+  "overtime_hours": 3
+}
+```
+
+## 9. API Outputs (Both Pilots)
+
+```json
+{
+  "stress": {
+    "physiological_stress": 82.4,
+    "self_reported_stress": 66.5,
+    "academic_load": 41.0,
+    "overall_stress": 72.6,
+    "classification": "high",
+    "overrides": ["exam<48h_and_high_SRS"]
+  },
+  "confidence": 0.82,
+  "needs_review": false
+}
+```
+
+## 10. Versioning & Governance
+
+* Rules are **versioned**, not silently changed
+* ML models can be updated **without changing decision logic**
+* All outputs are explainable post-hoc
+
+This is intentional and required for **clinical, educational, and EU-regulated environments**.
+
+## 11. Future Extensions
+
+* Stress accumulation over time
+* Burnout trajectory detection (healthcare)
+* Adaptive scheduling actions
+* Pilot-specific dashboards
+* Rule weight learning (without removing rules)
