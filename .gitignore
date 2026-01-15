@@ -12,11 +12,17 @@ Stress Predict/
 /Random Forest
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 2c867b7 (Correct rebase v2)
 .env
 mlruns/stress_detector_weights.zip
 =======
 .env
 >>>>>>> ff403a1 (Set up deployment and create app)
+<<<<<<< HEAD
 =======
 .env
 >>>>>>> ff403a1 (Set up deployment and create app)
+=======
+>>>>>>> 2c867b7 (Correct rebase v2)
