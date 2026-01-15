@@ -7,9 +7,10 @@ from numpy import argmax, mean
 from joblib import load
 from os import getenv, path
 from dotenv import load_dotenv
+from src.deployment_utils import init_model_weights
 from src.healthcare_stress_rules import compute_stress_healthcare, healthcare_compute_confidence
 from src.input import DataFrameInput, EducationComputeInput, HealthcareStressInput
-from education_stress_rules import education_compute_confidence, education_compute_stress
+from src.education_stress_rules import education_compute_confidence, education_compute_stress
 
 # Step 1: Download model weights at runtime if needed
 load_dotenv() 
