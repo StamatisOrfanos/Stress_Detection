@@ -8,9 +8,6 @@ variables:
 dockerize:
   stage: dockerize
   image: docker
-  before_script:
-    - chmod +x setup_env.sh
-    - ./setup_env.sh
   script:
     - echo $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
     - docker pull $IMAGE_NAME || true
@@ -28,6 +25,7 @@ deploy_staging:
   variables:
     HOST: $STAGING_HOST
     USER: $STAGING_USER
+    URL: $URL
   before_script:
     - eval `ssh-agent -s`
     - echo "$STAGING_PRIVATE_KEY" | tr -d '\r' | ssh-add - 
