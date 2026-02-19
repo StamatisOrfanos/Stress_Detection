@@ -12,33 +12,34 @@ dockerize:
     - chmod +x setup_env.sh
     - ./setup_env.sh
   script:
-    - docker build -t "$IMAGE_NAME" .
-    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
-    - echo "$IMAGE_NAME"
+    - echo $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
+    - docker pull $IMAGE_NAME || true
+    - docker build --cache-from $IMAGE_NAME -t "$IMAGE_NAME" .
     - docker push "$IMAGE_NAME"
+    - docker logout $CI_REGISTRY
   tags:
     - docker
   only:
     - tags
     - branches
-  when: manual
 
 deploy_staging:
   stage: deploy
   variables:
-    HOST: "ai4work1.cbml-unipi.gr"
-    USER: "ubuntu"
-    APP_DIR: "/apps/stress-detector"
+    HOST: $STAGING_HOST
+    USER: $STAGING_USER
   before_script:
     - eval `ssh-agent -s`
     - echo "$STAGING_PRIVATE_KEY" | tr -d '\r' | ssh-add - 
+    - ssh-keyscan $HOST >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
   script:
     - echo "Deployment to ($HOST)"
-    - scp -oStrictHostKeyChecking=no -i id_rsa deployment/docker-compose.yaml $USER@$HOST:$APP_DIR
-    - ssh -oStrictHostKeyChecking=no -i id_rsa $USER@$HOST 'bash -s' < deployment/deploy.sh $CI_REGISTRY $IMAGE_NAME $CI_JOB_TOKEN $APP_DIR
-  environment:
-    name: staging
-    url: https://ai4work1.cbml-unipi.gr
+    - docker context create remote --docker "host=ssh://$USER@$HOST"
+    - echo "$CI_JOB_TOKEN" | docker --context remote login -u gitlab-ci-token --password-stdin $CI_REGISTRY
+    - docker --context remote compose -f docker-compose.staging.yaml up -d --pull always
+    - docker --context remote image prune -f
+    - docker --context remote logout $CI_REGISTRY
   tags:
     - docker
   only:
