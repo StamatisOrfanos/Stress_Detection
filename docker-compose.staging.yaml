@@ -1,0 +1,31 @@
+services:
+  stress-detector:
+    image: $IMAGE_NAME
+    container_name: stress-detector-server
+    env_file:
+      - .env
+    ports:
+      - "5002:5002"  
+    environment:
+      - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=info  
+    restart: unless-stopped
+    # healthcheck:
+    #   test: [ "CMD", "curl", "-f", "http://localhost:5002/health" ]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '0.50'
+    #       memory: 512M
+    #     reservations:
+    #       cpus: '0.10'
+    #       memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
