@@ -15,7 +15,7 @@ services:
         - "traefik.http.services.stress-detector-app.loadbalancer.server.port=5002"
         
         # ROUTING RULE
-        - "traefik.http.routers.stress-detector-app-router.rule=Host(`ai4work1.cbml-unipi.gr`) && PathPrefix(`/stress-detector-app`)"
+        - "traefik.http.routers.stress-detector-app-router.rule=Host(`ai4work1.cbml-unipi.gr`) && PathPrefix(`/stress-detector`)"
         
         # Explicitly tell Traefik to use the HTTPS entrypoint
         - "traefik.http.routers.stress-detector-app-router.entrypoints=websecure"
@@ -24,7 +24,7 @@ services:
         - "traefik.http.routers.stress-detector-app-router.tls.certresolver=le"
 
         # HTTP → HTTPS redirect
-        - "traefik.http.routers.stress-detector-app-http.rule=Host(`ai4work1.cbml-unipi.gr`) && PathPrefix(`/stress-detector-app`)"
+        - "traefik.http.routers.stress-detector-app-http.rule=Host(`ai4work1.cbml-unipi.gr`) && PathPrefix(`/stress-detector`)"
         - "traefik.http.routers.stress-detector-app-http.entrypoints=web"
         - "traefik.http.routers.stress-detector-app-http.middlewares=redirect-to-https"
         - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
