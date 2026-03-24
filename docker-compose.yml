@@ -1,10 +1,39 @@
 services:
-  stress-detector:
-    build:
-      context: .
-    container_name: stress-detector-app
-    ports:
-      - "5002:5002"
-    env_file:
-      - .env
-    restart: unless-stopped
+  stress-detector-app:
+      image: ${IMAGE_NAME:-stress-detector-app:latest}
+      container_name: stress-detector-app
+      networks:
+        - proxy
+      environment:
+        - PYTHONUNBUFFERED=1
+        - LOG_LEVEL=info 
+        - APP_VERSION=${IMAGE_TAG:-unknown}
+      restart: unless-stopped
+      labels:
+        - "traefik.enable=true"
+        - "traefik.docker.network=proxy"
+        - "traefik.http.services.stress-detector-app.loadbalancer.server.port=5002"
+        
+        # ROUTING RULE
+        - "traefik.http.routers.stress-detector-app-router.rule=Host(`ai4work1.cbml-unipi.gr`) && PathPrefix(`/stress-detector-app`)"
+        
+        # Explicitly tell Traefik to use the HTTPS entrypoint
+        - "traefik.http.routers.stress-detector-app-router.entrypoints=websecure"
+        
+        # HTTPS Resolver
+        - "traefik.http.routers.stress-detector-app-router.tls.certresolver=le"
+
+        # HTTP → HTTPS redirect
+        - "traefik.http.routers.stress-detector-app-http.rule=Host(`ai4work1.cbml-unipi.gr`) && PathPrefix(`/stress-detector-app`)"
+        - "traefik.http.routers.stress-detector-app-http.entrypoints=web"
+        - "traefik.http.routers.stress-detector-app-http.middlewares=redirect-to-https"
+        - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+        - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
+      logging:
+        driver: "json-file"
+        options:  
+          max-size: "10m"
+          max-file: "3"
+networks:
+  proxy:
+    external: true

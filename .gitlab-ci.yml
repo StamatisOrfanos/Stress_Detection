@@ -36,7 +36,7 @@ deploy_staging:
     - echo "URL=$URL" >> .env
     - docker context create remote --docker "host=ssh://$USER@$HOST"
     - echo "$CI_JOB_TOKEN" | docker --context remote login -u gitlab-ci-token --password-stdin $CI_REGISTRY
-    - docker --context remote compose -f docker-compose.staging.yaml up -d --pull always
+    - docker --context remote compose -f docker-compose.yml up -d --pull always
     - docker --context remote image prune -f
     - docker --context remote logout $CI_REGISTRY
   tags:
