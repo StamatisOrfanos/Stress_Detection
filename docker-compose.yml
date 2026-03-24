@@ -30,6 +30,11 @@ services:
         - "traefik.http.routers.stress-detector-app-http.middlewares=redirect-to-https"
         - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
         - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
+        
+        - "traefik.http.middlewares.stress-app-strip.stripprefix.prefixes=/stress-detector"
+        
+        # 2. Attach that middleware to your HTTPS router
+        - "traefik.http.routers.stress-detector-app-router.middlewares=stress-app-strip"
       logging:
         driver: "json-file"
         options:  
