@@ -29,6 +29,15 @@ class EducationComputeInput(BaseModel):
     work_hours_week: int = 0
     commute_minutes_day: int = 0
     
+class AcademicPhysioStressInput(BaseModel):
+    # Baseline
+    hr_base: float
+    hrv_base: float
+
+    # Current session
+    hr_session: float
+    hrv_session: Optional[float]
+    
 class HealthcareStressInput(BaseModel):
     # --- ML input ---
     dataframe_split: Dict[str, Any]

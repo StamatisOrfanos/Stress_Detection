@@ -11,6 +11,8 @@ from src.deployment_utils import init_model_weights
 from src.healthcare_stress_rules import compute_stress_healthcare, healthcare_compute_confidence
 from src.input import DataFrameInput, EducationComputeInput, HealthcareStressInput
 from src.education_stress_rules import education_compute_confidence, education_compute_stress
+from src.academic_physio_stress import compute_stress_academic_physio
+from src.input import AcademicPhysioStressInput
 
 # Step 1: Download model weights at runtime if needed
 load_dotenv() 
@@ -128,6 +130,23 @@ def education_stress_compute(payload: EducationComputeInput):
         "needs_review": needs_review,
     }
 
+
+# ------------------------------------------- Education Academic Staff Stress Compute Endpoint ----------------------------------------
+@server.post("/stress/compute/academic")
+def stress_compute_academic_physio(payload: AcademicPhysioStressInput):
+
+    stress = compute_stress_academic_physio(
+        hr_base=payload.hr_base,
+        hrv_base=payload.hrv_base,
+        hr_session=payload.hr_session,
+        hrv_session=payload.hrv_session,
+    )
+
+    return {
+        "stress": stress,
+        "confidence": 0.7 if payload.hrv_session is not None else 0.4,
+        "needs_review": payload.hrv_session is None,
+    }
 
 # ------------------------------------------- Healthcare Stress Compute Endpoint ----------------------------------------
 @server.post("/stress/compute/healthcare")
