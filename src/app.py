@@ -156,12 +156,15 @@ def stress_compute_healthcare(payload: HealthcareStressInput):
         payload.dataframe_split["data"],
         payload.dataframe_split["columns"],
     )
+    
+    numeric_cols = ["hr_base", "hrv_base", "steps_base", "hr_shift", "hrv_shift", "steps_shift"]
+    df_for_model = df[numeric_cols].astype(float)
 
     model_prob = None
     model_used = False
 
     if hasattr(model, "predict_proba"):
-        proba = model.predict_proba(df)
+        proba = model.predict_proba(df_for_model)
         model_prob = float(mean(proba[:, 1]))
         model_used = True
 
