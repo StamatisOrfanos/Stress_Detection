@@ -158,8 +158,10 @@ def stress_compute_healthcare(payload: HealthcareStressInput):
         columns=payload.dataframe_split["columns"],
     )
     
-    numeric_cols = ["hr_base", "hrv_base", "steps_base", "hr_shift", "hrv_shift", "steps_shift"]
-    df_for_model = df[numeric_cols].astype(float)
+    df_for_model = DataFrame({
+        "HR": df["hr_shift"],
+        "HRV": df["hrv_shift"],
+    }).astype(float)
 
     model_prob = None
     model_used = False
