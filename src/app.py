@@ -152,9 +152,10 @@ def stress_compute_academic_physio(payload: AcademicPhysioStressInput):
 @server.post("/stress/compute/healthcare")
 def stress_compute_healthcare(payload: HealthcareStressInput):
 
+
     df = DataFrame(
         payload.dataframe_split["data"],
-        payload.dataframe_split["columns"],
+        columns=payload.dataframe_split["columns"],
     )
     
     numeric_cols = ["hr_base", "hrv_base", "steps_base", "hr_shift", "hrv_shift", "steps_shift"]
@@ -167,30 +168,36 @@ def stress_compute_healthcare(payload: HealthcareStressInput):
         proba = model.predict_proba(df_for_model)
         model_prob = float(mean(proba[:, 1]))
         model_used = True
+        
+    row = df.iloc[0]
 
     result = compute_stress_healthcare(
-        hr_base=payload.hr_base,
-        hrv_base=payload.hrv_base,
-        steps_base=payload.steps_base,
-        hr_shift=payload.hr_shift,
-        hrv_shift=payload.hrv_shift,
-        steps_shift=payload.steps_shift,
+        hr_base=float(row["hr_base"]),
+        hrv_base=float(row["hrv_base"]),
+        steps_base=int(row["steps_base"]),
+
+        hr_shift=float(row["hr_shift"]),
+        hrv_shift=float(row["hrv_shift"]) if row["hrv_shift"] is not None else None,
+        steps_shift=int(row["steps_shift"]),
+
+        pre_sr=int(row["pre_sr"]) if row["pre_sr"] is not None else None,
+        post_sr=int(row["post_sr"]) if row["post_sr"] is not None else None,
+        weekly_sr=int(row["weekly_sr"]) if row["weekly_sr"] is not None else None,
+
+        shift_type=row["shift_type"],
+        pref_match=bool(row["pref_match"]),
+        consecutive_shifts=int(row["consecutive_shifts"]),
+        hours_since_last_shift=float(row["hours_since_last_shift"]),
+        overtime_hours=float(row["overtime_hours"]),
+
         model_stress_prob=model_prob,
-        pre_sr=payload.pre_sr,
-        post_sr=payload.post_sr,
-        weekly_sr=payload.weekly_sr,
-        shift_type=payload.shift_type,
-        pref_match=payload.pref_match,
-        consecutive_shifts=payload.consecutive_shifts,
-        hours_since_last_shift=payload.hours_since_last_shift,
-        overtime_hours=payload.overtime_hours,
     )
 
     confidence = healthcare_compute_confidence(
-        hrv_present=payload.hrv_shift is not None,
+        hrv_present=row["hrv_shift"] is not None,
         hr_missing_ratio=0.0,
         model_used=model_used,
-        post_sr_present=payload.post_sr is not None,
+        post_sr_present=row["post_sr"] is not None,
     )
 
     return {
