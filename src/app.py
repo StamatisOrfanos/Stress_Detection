@@ -1,5 +1,6 @@
 import os
 from typing import Optional, Dict, Any
+from pandas import DataFrame, isna
 from fastapi import FastAPI
 import joblib
 from pandas import DataFrame
@@ -79,57 +80,104 @@ def predict(input_data: DataFrameInput):
 
 
 # ------------------------------------------- Education Stress Compute Endpoint ----------------------------------------
+from pandas import DataFrame, isna
+from numpy import mean
+
 @server.post("/stress/compute/education")
 def education_stress_compute(payload: EducationComputeInput):
+    # 1. Build DataFrame
+    df = DataFrame(
+        payload.dataframe_split["data"],
+        columns=payload.dataframe_split["columns"]
+    )
 
-    df = DataFrame(data=payload.dataframe_split["data"], columns=payload.dataframe_split["columns"],)
+    # 2. Validate
+    required_cols = [
+        "hr_base", "hrv_base", "steps_base",
+        "hr_session", "hrv_session", "steps_session",
+        "sleep_last_24h",
+        "pre_sr", "post_sr", "weekly_sr",
+        "deadlines_72h", "exam_hours_until",
+        "back_to_back_sessions",
+        "credit_overload", "work_hours_week", "commute_minutes_day"
+    ]
+
+    missing = [c for c in required_cols if c not in df.columns]
+    if missing:
+        raise ValueError(f"Missing columns: {missing}")
+
+    if df.empty:
+        raise ValueError("Empty dataframe provided")
+
+    row = df.iloc[0]
+
+    # 3. Safe extraction helpers 
+    def get_optional_float(value):
+        return None if isna(value) else float(value)
+
+    def get_optional_int(value):
+        return None if isna(value) else int(value)
+
+    # 4. Model input (safe handling)
+    numeric_cols = [
+        "hr_base", "hrv_base", "steps_base",
+        "hr_session", "hrv_session", "steps_session"
+    ]
+
+    df_for_model = df[numeric_cols].copy()
+
+    # Replace NaNs ONLY for model (not for logic)
+    df_for_model = df_for_model.fillna(df_for_model.mean())
+
     model_prob = None
     model_used = False
 
     if hasattr(model, "predict_proba"):
-        proba = model.predict_proba(df)
+        proba = model.predict_proba(df_for_model.astype(float))
         model_prob = float(mean(proba[:, 1]))
         model_used = True
 
-    # Core computation
+    # 5. Core stress computation
     result = education_compute_stress(
-        hr_base=payload.hr_base,
-        hrv_base=payload.hrv_base,
-        steps_base=payload.steps_base,
-        hr_session=payload.hr_session,
-        hrv_session=payload.hrv_session,
-        steps_session=payload.steps_session,
-        sleep_last_24h=payload.sleep_last_24h,
+        hr_base=float(row["hr_base"]),
+        hrv_base=float(row["hrv_base"]),
+        steps_base=int(row["steps_base"]),
+
+        hr_session=float(row["hr_session"]),
+        hrv_session=get_optional_float(row["hrv_session"]),
+        steps_session=int(row["steps_session"]),
+        sleep_last_24h=get_optional_float(row["sleep_last_24h"]),
+
         model_stress_prob=model_prob,
-        pre_sr=payload.pre_sr,
-        post_sr=payload.post_sr,
-        weekly_sr=payload.weekly_sr,
-        deadlines_72h=payload.deadlines_72h,
-        exam_hours_until=payload.exam_hours_until,
-        back_to_back_sessions=payload.back_to_back_sessions,
-        credit_overload=payload.credit_overload,
-        work_hours_week=payload.work_hours_week,
-        commute_minutes_day=payload.commute_minutes_day,
+
+        pre_sr=get_optional_int(row["pre_sr"]),
+        post_sr=get_optional_int(row["post_sr"]),
+        weekly_sr=get_optional_int(row["weekly_sr"]),
+
+        deadlines_72h=int(row["deadlines_72h"]),
+        exam_hours_until=get_optional_float(row["exam_hours_until"]),
+        back_to_back_sessions=int(row["back_to_back_sessions"]),
+        credit_overload=int(row["credit_overload"]),
+        work_hours_week=int(row["work_hours_week"]),
+        commute_minutes_day=int(row["commute_minutes_day"]),
     )
 
-    # Confidence
+    # 6. Confidence (correct NaN handling)
     confidence = education_compute_confidence(
-        hrv_session=payload.hrv_session,
+        hrv_session=get_optional_float(row["hrv_session"]),
         hr_missing_ratio=0.0,
         model_used=model_used,
-        post_sr_present=payload.post_sr is not None,
-        sleep_present=payload.sleep_last_24h is not None,
+        post_sr_present=not isna(row["post_sr"]),
+        sleep_present=not isna(row["sleep_last_24h"]),
     )
 
-    # Review flag
-    needs_review = confidence < 0.6
 
+    # 7. Final response
     return {
         "stress": result,
         "confidence": round(confidence, 2),
-        "needs_review": needs_review,
+        "needs_review": confidence < 0.6,
     }
-
 
 # ------------------------------------------- Education Academic Staff Stress Compute Endpoint ----------------------------------------
 @server.post("/stress/compute/academic")
