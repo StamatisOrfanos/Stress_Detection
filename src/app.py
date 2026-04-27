@@ -80,9 +80,6 @@ def predict(input_data: DataFrameInput):
 
 
 # ------------------------------------------- Education Stress Compute Endpoint ----------------------------------------
-from pandas import DataFrame, isna
-from numpy import mean
-
 @server.post("/stress/compute/education")
 def education_stress_compute(payload: EducationComputeInput):
     # 1. Build DataFrame
@@ -91,6 +88,7 @@ def education_stress_compute(payload: EducationComputeInput):
         columns=payload.dataframe_split["columns"]
     )
 
+    
     # 2. Validate
     required_cols = [
         "hr_base", "hrv_base", "steps_base",
@@ -111,22 +109,22 @@ def education_stress_compute(payload: EducationComputeInput):
 
     row = df.iloc[0]
 
-    # 3. Safe extraction helpers 
+
+    # 3. Safe extraction helpers
     def get_optional_float(value):
         return None if isna(value) else float(value)
 
     def get_optional_int(value):
         return None if isna(value) else int(value)
 
-    # 4. Model input (safe handling)
-    numeric_cols = [
-        "hr_base", "hrv_base", "steps_base",
-        "hr_session", "hrv_session", "steps_session"
-    ]
 
-    df_for_model = df[numeric_cols].copy()
+    # 4. Model input
+    df_for_model = DataFrame({
+        "HR": df["hr_session"],
+        "HRV": df["hrv_session"],
+    })
 
-    # Replace NaNs ONLY for model (not for logic)
+    # Handle NaNs for model ONLY
     df_for_model = df_for_model.fillna(df_for_model.mean())
 
     model_prob = None
@@ -137,6 +135,7 @@ def education_stress_compute(payload: EducationComputeInput):
         model_prob = float(mean(proba[:, 1]))
         model_used = True
 
+    
     # 5. Core stress computation
     result = education_compute_stress(
         hr_base=float(row["hr_base"]),
@@ -162,7 +161,7 @@ def education_stress_compute(payload: EducationComputeInput):
         commute_minutes_day=int(row["commute_minutes_day"]),
     )
 
-    # 6. Confidence (correct NaN handling)
+    # 6. Confidence
     confidence = education_compute_confidence(
         hrv_session=get_optional_float(row["hrv_session"]),
         hr_missing_ratio=0.0,
@@ -170,7 +169,6 @@ def education_stress_compute(payload: EducationComputeInput):
         post_sr_present=not isna(row["post_sr"]),
         sleep_present=not isna(row["sleep_last_24h"]),
     )
-
 
     # 7. Final response
     return {
