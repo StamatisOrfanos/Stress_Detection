@@ -88,16 +88,12 @@ def education_stress_compute(payload: EducationComputeInput):
         columns=payload.dataframe_split["columns"]
     )
 
-    
-    # 2. Validate
+    # 2. Validate only the subset needed for physiological stress
     required_cols = [
-        "hr_base", "hrv_base", "steps_base",
-        "hr_session", "hrv_session", "steps_session",
-        "sleep_last_24h",
-        "pre_sr", "post_sr", "weekly_sr",
-        "deadlines_72h", "exam_hours_until",
-        "back_to_back_sessions",
-        "credit_overload", "work_hours_week", "commute_minutes_day"
+        "hr_base",
+        "hrv_base",
+        "hr_session",
+        "hrv_session",
     ]
 
     missing = [c for c in required_cols if c not in df.columns]
@@ -109,72 +105,25 @@ def education_stress_compute(payload: EducationComputeInput):
 
     row = df.iloc[0]
 
-
-    # 3. Safe extraction helpers
+    # 3. Safe extraction helper
     def get_optional_float(value):
         return None if isna(value) else float(value)
 
-    def get_optional_int(value):
-        return None if isna(value) else int(value)
-
-
-    # 4. Model input
-    df_for_model = DataFrame({
-        "HR": df["hr_session"],
-        "HRV": df["hrv_session"],
-    })
-
-    # Handle NaNs for model ONLY
-    df_for_model = df_for_model.fillna(df_for_model.mean())
-
-    model_prob = None
-    model_used = False
-
-    if hasattr(model, "predict_proba"):
-        proba = model.predict_proba(df_for_model.astype(float))
-        model_prob = float(mean(proba[:, 1]))
-        model_used = True
-
-    
-    # 5. Core stress computation
-    result = education_compute_stress(
+    # 4. Use the same physiological stress computation as academics
+    stress = compute_stress_academic_physio(
         hr_base=float(row["hr_base"]),
         hrv_base=float(row["hrv_base"]),
-        steps_base=int(row["steps_base"]),
-
         hr_session=float(row["hr_session"]),
         hrv_session=get_optional_float(row["hrv_session"]),
-        steps_session=int(row["steps_session"]),
-        sleep_last_24h=get_optional_float(row["sleep_last_24h"]),
-
-        model_stress_prob=model_prob,
-
-        pre_sr=get_optional_int(row["pre_sr"]),
-        post_sr=get_optional_int(row["post_sr"]),
-        weekly_sr=get_optional_int(row["weekly_sr"]),
-
-        deadlines_72h=int(row["deadlines_72h"]),
-        exam_hours_until=get_optional_float(row["exam_hours_until"]),
-        back_to_back_sessions=int(row["back_to_back_sessions"]),
-        credit_overload=int(row["credit_overload"]),
-        work_hours_week=int(row["work_hours_week"]),
-        commute_minutes_day=int(row["commute_minutes_day"]),
     )
 
-    # 6. Confidence
-    confidence = education_compute_confidence(
-        hrv_session=get_optional_float(row["hrv_session"]),
-        hr_missing_ratio=0.0,
-        model_used=model_used,
-        post_sr_present=not isna(row["post_sr"]),
-        sleep_present=not isna(row["sleep_last_24h"]),
-    )
+    # 5. Match academic endpoint response style
+    hrv_present = not isna(row["hrv_session"])
 
-    # 7. Final response
     return {
-        "stress": result,
-        "confidence": round(confidence, 2),
-        "needs_review": confidence < 0.6,
+        "stress": stress,
+        "confidence": 0.7 if hrv_present else 0.4,
+        "needs_review": not hrv_present,
     }
 
 # ------------------------------------------- Education Academic Staff Stress Compute Endpoint ----------------------------------------
