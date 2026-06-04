@@ -147,58 +147,41 @@ def stress_compute_academic_physio(payload: AcademicPhysioStressInput):
 @server.post("/stress/compute/healthcare")
 def stress_compute_healthcare(payload: HealthcareStressInput):
 
-
     df = DataFrame(
         payload.dataframe_split["data"],
         columns=payload.dataframe_split["columns"],
     )
-    
-    df_for_model = DataFrame({
-        "HR": df["hr_shift"],
-        "HRV": df["hrv_shift"],
-    }).astype(float)
 
-    model_prob = None
-    model_used = False
+    required_cols = [
+        "hr_base",
+        "hrv_base",
+        "hr_shift",
+        "hrv_shift",
+    ]
 
-    if hasattr(model, "predict_proba"):
-        proba = model.predict_proba(df_for_model)
-        model_prob = float(mean(proba[:, 1]))
-        model_used = True
-        
+    missing = [c for c in required_cols if c not in df.columns]
+    if missing:
+        raise ValueError(f"Missing columns: {missing}")
+
+    if df.empty:
+        raise ValueError("Empty dataframe provided")
+
     row = df.iloc[0]
 
-    result = compute_stress_healthcare(
+    def get_optional_float(value):
+        return None if isna(value) else float(value)
+
+    stress = compute_stress_academic_physio(
         hr_base=float(row["hr_base"]),
         hrv_base=float(row["hrv_base"]),
-        steps_base=int(row["steps_base"]),
-
-        hr_shift=float(row["hr_shift"]),
-        hrv_shift=float(row["hrv_shift"]) if row["hrv_shift"] is not None else None,
-        steps_shift=int(row["steps_shift"]),
-
-        pre_sr=int(row["pre_sr"]) if row["pre_sr"] is not None else None,
-        post_sr=int(row["post_sr"]) if row["post_sr"] is not None else None,
-        weekly_sr=int(row["weekly_sr"]) if row["weekly_sr"] is not None else None,
-
-        shift_type=row["shift_type"],
-        pref_match=bool(row["pref_match"]),
-        consecutive_shifts=int(row["consecutive_shifts"]),
-        hours_since_last_shift=float(row["hours_since_last_shift"]),
-        overtime_hours=float(row["overtime_hours"]),
-
-        model_stress_prob=model_prob,
+        hr_session=float(row["hr_shift"]),
+        hrv_session=get_optional_float(row["hrv_shift"]),
     )
 
-    confidence = healthcare_compute_confidence(
-        hrv_present=row["hrv_shift"] is not None,
-        hr_missing_ratio=0.0,
-        model_used=model_used,
-        post_sr_present=row["post_sr"] is not None,
-    )
+    hrv_present = not isna(row["hrv_shift"])
 
     return {
-        "stress": result,
-        "confidence": round(confidence, 2),
-        "needs_review": confidence < 0.6,
+        "stress": stress,
+        "confidence": 0.7 if hrv_present else 0.4,
+        "needs_review": not hrv_present,
     }
