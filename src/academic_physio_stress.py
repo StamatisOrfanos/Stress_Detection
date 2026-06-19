@@ -20,7 +20,7 @@ def sigmoid(x: float) -> float:
     return 1 / (1 + math.exp(-x))
 
 
-def compute_stress_academic_physio(
+def compute_stress_physio(
     hr_base: float,
     hrv_base: float,
     hr_session: float,

@@ -102,6 +102,34 @@ def contextual_load(shift_type: str, pref_match: bool, consecutive_shifts: int, 
 
     return clamp(points, 0.0, 40.0)
 
+
+
+def compute_healthcare_stress_with_questionnaires(*, physiological_stress_score: float, pre_sr: Optional[int], post_sr: Optional[int], weekly_sr: Optional[int]) -> float:
+    """
+    Adjust the existing physiological healthcare stress score using the available questionnaire answers.
+    This function intentionally keeps the current biosignal stress formula as the base signal. Questionnaires 
+    influence the final score, but they do not replace the biosignal score.
+    """
+
+    if pre_sr is None and post_sr is None and weekly_sr is None:
+        return round(clamp(physiological_stress_score, 0.0, 100.0), 2)
+
+    answer_adjustments = {0: -15.0, 1: -5.0, 2: 5.0}
+    weighted_answers = [(pre_sr, 0.35), (post_sr, 0.5), (weekly_sr, 0.15)]
+    present_answer_weights = [(answer, weight) for answer, weight in weighted_answers if answer is not None and answer in answer_adjustments]
+
+
+    if not present_answer_weights:
+        questionnaire_adjustment = 0.0
+    else:
+        total_weight = sum(weight for _, weight in present_answer_weights)
+        questionnaire_adjustment = sum(answer_adjustments[answer] * weight for answer, weight in present_answer_weights) / total_weight
+
+    questionnaire_adjustment = clamp(questionnaire_adjustment, -15.0, 5.0)
+    adjusted_stress = physiological_stress_score + questionnaire_adjustment
+
+    return round(clamp(adjusted_stress, 0.0, 100.0), 2)
+
 # ------------------------------------------------------------------------------------------------
 
 

@@ -9,10 +9,10 @@ from joblib import load
 from os import getenv, path
 from dotenv import load_dotenv
 from src.deployment_utils import init_model_weights
-from src.healthcare_stress_rules import compute_stress_healthcare, healthcare_compute_confidence
+from src.healthcare_stress_rules import (compute_healthcare_stress_with_questionnaires)
 from src.input import DataFrameInput, EducationComputeInput, HealthcareStressInput
 from src.education_stress_rules import education_compute_confidence, education_compute_stress
-from src.academic_physio_stress import compute_stress_academic_physio
+from src.academic_physio_stress import compute_stress_physio
 from src.input import AcademicPhysioStressInput
 
 # Step 1: Download model weights at runtime if needed
@@ -110,7 +110,7 @@ def education_stress_compute(payload: EducationComputeInput):
         return None if isna(value) else float(value)
 
     # 4. Use the same physiological stress computation as academics
-    stress = compute_stress_academic_physio(
+    stress = compute_stress_physio(
         hr_base=float(row["hr_base"]),
         hrv_base=float(row["hrv_base"]),
         hr_session=float(row["hr_session"]),
@@ -130,7 +130,7 @@ def education_stress_compute(payload: EducationComputeInput):
 @server.post("/stress/compute/academic")
 def stress_compute_academic_physio(payload: AcademicPhysioStressInput):
 
-    stress = compute_stress_academic_physio(
+    stress = compute_stress_physio(
         hr_base=payload.hr_base,
         hrv_base=payload.hrv_base,
         hr_session=payload.hr_session,
@@ -147,10 +147,7 @@ def stress_compute_academic_physio(payload: AcademicPhysioStressInput):
 @server.post("/stress/compute/healthcare")
 def stress_compute_healthcare(payload: HealthcareStressInput):
 
-    df = DataFrame(
-        payload.dataframe_split["data"],
-        columns=payload.dataframe_split["columns"],
-    )
+    df = DataFrame(payload.dataframe_split["data"], columns=payload.dataframe_split["columns"],)
 
     required_cols = [
         "hr_base",
@@ -171,17 +168,35 @@ def stress_compute_healthcare(payload: HealthcareStressInput):
     def get_optional_float(value):
         return None if isna(value) else float(value)
 
-    stress = compute_stress_academic_physio(
+    def get_optional_int(value):
+        return None if isna(value) else int(value)
+
+    hrv_shift = get_optional_float(row["hrv_shift"])
+
+    physiological_stress = compute_stress_physio(
         hr_base=float(row["hr_base"]),
         hrv_base=float(row["hrv_base"]),
         hr_session=float(row["hr_shift"]),
-        hrv_session=get_optional_float(row["hrv_shift"]),
+        hrv_session=hrv_shift,
     )
 
-    hrv_present = not isna(row["hrv_shift"])
+    stress = compute_healthcare_stress_with_questionnaires(
+        physiological_stress_score=physiological_stress,
+        pre_sr=get_optional_int(row["pre_sr"]) if "pre_sr" in df.columns else None,
+        post_sr=get_optional_int(row["post_sr"]) if "post_sr" in df.columns else None,
+        weekly_sr=get_optional_int(row["weekly_sr"]) if "weekly_sr" in df.columns else None,
+    )
+
+    hrv_present = hrv_shift is not None
+    questionnaire_present = (("pre_sr" in df.columns and not isna(row["pre_sr"])) or ("post_sr" in df.columns and not isna(row["post_sr"])) or ("weekly_sr" in df.columns and not isna(row["weekly_sr"])))
+
+    confidence = 0.7 if hrv_present else 0.4
+
+    if questionnaire_present:
+        confidence = min(confidence + 0.1, 0.8)
 
     return {
         "stress": stress,
-        "confidence": 0.7 if hrv_present else 0.4,
+        "confidence": confidence,
         "needs_review": not hrv_present,
     }
